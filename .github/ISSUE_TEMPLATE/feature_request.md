@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: "[FUN]"
+title: "FUN\U0001F6A9"
 labels: ''
 assignees: ''
 
