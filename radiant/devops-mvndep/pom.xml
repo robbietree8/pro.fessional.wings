@@ -22,16 +22,16 @@
             <artifactId>shardingsphere-jdbc-core-spring-boot-starter</artifactId>
             <version>${shardingsphere.version}</version>
         </dependency>
-        <!-- mapper converter -->
-        <dependency>
-            <groupId>org.simpleflatmapper</groupId>
-            <artifactId>sfm-jdbc</artifactId>
-            <version>${simpleflatmapper.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast-spring</artifactId>
             <version>${hazelcast.version}</version>
+        </dependency>
+        <!-- jdbc -->
+        <dependency>
+            <groupId>org.jdbi</groupId>
+            <artifactId>jdbi3-core</artifactId>
+            <version>${jdbi.version}</version>
         </dependency>
         <!-- utils -->
         <dependency>

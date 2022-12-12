@@ -3,8 +3,8 @@ package pro.fessional.wings.slardar.context;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.i18n.TimeZoneAwareLocaleContext;
 import pro.fessional.wings.slardar.constants.SlardarOrderConst;
 import pro.fessional.wings.slardar.security.WingsUserDetails;
@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServletResponse;
  * @since 2019-11-16
  */
 @RequiredArgsConstructor
+@Slf4j
 public class TerminalInterceptor implements AutoRegisterInterceptor {
 
     private final WingsLocaleResolver localeResolver;
@@ -33,20 +34,30 @@ public class TerminalInterceptor implements AutoRegisterInterceptor {
                              @NotNull HttpServletResponse response,
                              @NotNull Object handler) {
 
-        TerminalContext.clear();
-        TimeZoneAwareLocaleContext locale = localeResolver.resolveI18nContext(request);
-        String remoteIp = remoteResolver.resolveRemoteIp(request);
-        String agentInfo = remoteResolver.resolveAgentInfo(request);
+        try {
+            final WingsUserDetails details = SecurityContextUtil.getUserDetails(false);
+            final TerminalContext.Builder builder = TerminalContext
+                    .login()
+                    .withRemoteIp(remoteResolver.resolveRemoteIp(request))
+                    .withAgentInfo(remoteResolver.resolveAgentInfo(request));
 
-        final WingsUserDetails details = SecurityContextUtil.getUserDetails(true);
-        if (details == null) {
-            TerminalContext.guest(locale.getLocale(), locale.getTimeZone(), remoteIp, agentInfo);
+            if (details == null) {
+                TimeZoneAwareLocaleContext locale = localeResolver.resolveI18nContext(request);
+                builder.withLocale(locale.getLocale())
+                       .withTimeZone(locale.getTimeZone())
+                       .asGuest();
+            }
+            else {
+                builder.withLocale(details.getLocale())
+                       .withTimeZone(details.getZoneId())
+                       .asUser(details.getUserId());
+            }
         }
-        else {
-            TerminalContext.login(details.getUserId(), locale.getLocale(), locale.getTimeZone(), remoteIp, agentInfo);
+        catch (Exception e) {
+            log.error("should NOT be here", e);
+            TerminalContext.logout();
+            return false;
         }
-        //
-        LocaleContextHolder.setLocaleContext(locale);
         //
         return true;
     }
@@ -55,6 +66,6 @@ public class TerminalInterceptor implements AutoRegisterInterceptor {
     public void afterCompletion(@NotNull HttpServletRequest request,
                                 @NotNull HttpServletResponse response,
                                 @NotNull Object handler, Exception ex) {
-        TerminalContext.clear();
+        TerminalContext.logout();
     }
 }

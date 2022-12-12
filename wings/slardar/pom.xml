@@ -22,10 +22,6 @@
             <artifactId>silencer-curse</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>transmittable-thread-local</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
         </dependency>
@@ -118,6 +114,12 @@
             <groupId>io.sentry</groupId>
             <artifactId>sentry-logback</artifactId>
             <optional>true</optional>
+        </dependency>
+        <!-- test -->
+        <dependency>
+            <groupId>pro.fessional.wings</groupId>
+            <artifactId>silencer-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

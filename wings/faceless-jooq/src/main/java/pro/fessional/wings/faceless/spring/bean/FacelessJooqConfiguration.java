@@ -8,12 +8,13 @@ import org.jooq.VisitListenerProvider;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DefaultExecuteListenerProvider;
 import org.jooq.impl.DefaultVisitListenerProvider;
-import org.simpleflatmapper.jooq.JooqMapperFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jooq.DefaultConfigurationCustomizer;
+import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -21,6 +22,7 @@ import org.springframework.core.annotation.Order;
 import pro.fessional.wings.faceless.database.WingsTableCudHandler;
 import pro.fessional.wings.faceless.database.jooq.WingsJooqEnv;
 import pro.fessional.wings.faceless.database.jooq.converter.JooqConverterDelegate;
+import pro.fessional.wings.faceless.database.jooq.helper.JournalDiffHelper;
 import pro.fessional.wings.faceless.database.jooq.listener.AutoQualifyFieldListener;
 import pro.fessional.wings.faceless.database.jooq.listener.JournalDeleteListener;
 import pro.fessional.wings.faceless.database.jooq.listener.TableCudListener;
@@ -32,6 +34,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author trydofor
+ * @see JooqAutoConfiguration
  * @since 2019-08-12
  */
 @Configuration(proxyBeanMethods = false)
@@ -53,7 +56,7 @@ public class FacelessJooqConfiguration {
     @ConditionalOnProperty(name = FacelessJooqEnabledProp.Key$autoQualify, havingValue = "true")
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public VisitListenerProvider jooqAutoQualifyFieldListener() {
-        log.info("Wings conf jooqAutoQualifyFieldListener");
+        log.info("FacelessJooq spring-bean jooqAutoQualifyFieldListener");
         return new DefaultVisitListenerProvider(new AutoQualifyFieldListener());
     }
 
@@ -63,7 +66,7 @@ public class FacelessJooqConfiguration {
     public VisitListenerProvider jooqTableCudListener(ObjectProvider<WingsTableCudHandler> handlers, FacelessJooqCudProp prop) {
         final List<WingsTableCudHandler> hdl = handlers.orderedStream().collect(Collectors.toList());
         final String names = hdl.stream().map(it -> it.getClass().getName()).collect(Collectors.joining(","));
-        log.info("Wings conf jooqTableCudListener with handler=" + names);
+        log.info("FacelessJooq spring-bean jooqTableCudListener with handler=" + names);
         final TableCudListener listener = new TableCudListener();
         listener.setHandlers(hdl);
         listener.setInsert(prop.isInsert());
@@ -76,7 +79,7 @@ public class FacelessJooqConfiguration {
     @Bean
     @ConditionalOnProperty(name = FacelessJooqEnabledProp.Key$journalDelete, havingValue = "true")
     public ExecuteListenerProvider jooqJournalDeleteListener() {
-        log.info("Wings conf jooqJournalDeleteListener");
+        log.info("FacelessJooq spring-bean jooqJournalDeleteListener");
         return new DefaultExecuteListenerProvider(new JournalDeleteListener());
     }
 
@@ -87,7 +90,7 @@ public class FacelessJooqConfiguration {
             ObjectProvider<ConverterProvider> providers,
             ObjectProvider<org.jooq.Converter<?, ?>> converters
     ) {
-        log.info("Wings conf jooqConfigurationCustomizer");
+        log.info("FacelessJooq spring-bean jooqConfigurationCustomizer");
         return configuration -> {
             final Settings settings = configuration.settings();
             WingsJooqEnv.daoBatchMysql = config.isBatchMysql();
@@ -96,18 +99,10 @@ public class FacelessJooqConfiguration {
 //                  .withParseDialect(SQLDialect.MYSQL)
 //                .withRenderTable(false)
             ;
-            log.info("Wings conf jooq setting, dialect=" + settings.getParseDialect());
-
-            if (config.isSimpleflatmapper()) {
-                log.info("Wings conf beanPostSfmRecordMapperProvider");
-                // into
-                configuration.set(JooqMapperFactory.newInstance().ignorePropertyNotFound().newRecordMapperProvider());
-                // from
-                configuration.set(JooqMapperFactory.newInstance().ignorePropertyNotFound().newRecordUnmapperProvider(configuration));
-            }
+            log.info("FacelessJooq conf jooq setting, dialect=" + settings.getParseDialect());
 
             if (config.isConverter()) {
-                log.info("Wings conf jooqConfiguration ConverterProvider");
+                log.info("FacelessJooq conf jooqConfiguration ConverterProvider");
                 JooqConverterDelegate dcp = new JooqConverterDelegate();
                 dcp.add(configuration.converterProvider());
 
@@ -122,5 +117,11 @@ public class FacelessJooqConfiguration {
                 configuration.set(dcp);
             }
         };
+    }
+
+    @Autowired
+    public void initJournalDiffHelper(FacelessJooqCudProp prop) {
+        log.info("FacelessJooq spring-auto initJournalDiffHelper");
+        JournalDiffHelper.putDefaultIgnore(prop.getDiff());
     }
 }

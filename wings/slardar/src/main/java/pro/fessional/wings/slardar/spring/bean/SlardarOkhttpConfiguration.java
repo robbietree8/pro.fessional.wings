@@ -41,7 +41,7 @@ public class SlardarOkhttpConfiguration {
     @Bean
     @ConditionalOnMissingBean(ConnectionPool.class)
     public ConnectionPool okHttp3ConnectionPool(SlardarOkHttpProp config) {
-        log.info("Wings conf okHttp3ConnectionPool");
+        log.info("Slardar spring-bean okHttp3ConnectionPool");
         int maxIdleConnections = config.getMaxIdle();
         return new ConnectionPool(maxIdleConnections, config.getKeepAlive(), TimeUnit.SECONDS);
     }
@@ -49,20 +49,20 @@ public class SlardarOkhttpConfiguration {
     @Bean
     @ConditionalOnProperty(value = SlardarOkHttpProp.Key$hostCookie, havingValue = "true")
     public CookieJar hostCookieJar() {
-        log.info("Wings conf hostCookieJar");
+        log.info("Slardar spring-bean hostCookieJar");
         return new OkHttpClientHelper.HostCookieJar();
     }
 
     @Bean
     public OkHttpClient.Builder okHttpClientBuilder(
-            ObjectProvider<Cache> cacheProvier,
+            ObjectProvider<Cache> cacheProvider,
             ObjectProvider<CookieJar> cookieProvider,
             ObjectProvider<Dns> dnsProvider,
             ConnectionPool connectionPool,
             ObjectProvider<Interceptor> interceptors,
             SlardarOkHttpProp properties
     ) {
-        log.info("Wings conf okHttpClient");
+        log.info("Slardar spring-bean okHttpClientBuilder");
         // check builder return new ...
         final OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(Duration.ofSeconds(properties.getTimeoutConn()))
@@ -76,17 +76,17 @@ public class SlardarOkhttpConfiguration {
         // interceptors
         interceptors.orderedStream().forEach(it -> {
             if (it instanceof OkHttpInterceptor && ((OkHttpInterceptor) it).isNetwork()) {
-                log.info("Wings conf okHttpClient addNetworkInterceptor:" + it.getClass());
+                log.info("Slardar conf okHttpClient addNetworkInterceptor:" + it.getClass());
                 builder.addNetworkInterceptor(it);
             }
             else {
-                log.info("Wings conf okHttpClient addInterceptor:" + it.getClass());
+                log.info("Slardar conf okHttpClient addInterceptor:" + it.getClass());
                 builder.addInterceptor(it);
             }
         });
 
         // cache
-        Cache cacheBean = cacheProvier.getIfAvailable();
+        Cache cacheBean = cacheProvider.getIfAvailable();
         if (cacheBean == null) {
             int mbs = properties.getCacheMegabyte();
             if (mbs > 0) {
@@ -100,32 +100,32 @@ public class SlardarOkhttpConfiguration {
                 catch (Exception e) {
                     log.warn("failed to create okhttp cache on dir=" + cacheDir, e);
                 }
-                log.info("Wings conf okHttpClient cache-dir=" + properties.getCacheDirectory());
+                log.info("Slardar conf okHttpClient cache-dir=" + properties.getCacheDirectory());
             }
             else {
-                log.info("Wings conf okHttpClient no-cache");
+                log.info("Slardar conf okHttpClient no-cache");
             }
         }
         else {
             builder.cache(cacheBean);
-            log.info("Wings conf okHttpClient cache=" + cacheBean.getClass().getName());
+            log.info("Slardar conf okHttpClient cache=" + cacheBean.getClass().getName());
         }
 
         builder.connectionPool(connectionPool);
 
         final CookieJar ck = cookieProvider.getIfAvailable();
         if (ck != null) {
-            log.info("Wings conf okHttpClient CookieJar=" + ck.getClass().getName());
+            log.info("Slardar conf okHttpClient CookieJar=" + ck.getClass().getName());
             builder.cookieJar(ck);
         }
         final Dns dns = dnsProvider.getIfAvailable();
         if (dns != null) {
-            log.info("Wings conf okHttpClient dns=" + dns.getClass().getName());
+            log.info("Slardar conf okHttpClient dns=" + dns.getClass().getName());
             builder.dns(dns);
         }
 
         if (properties.isSslTrustAll()) {
-            log.info("Wings conf okHttpClient sslTrustAll");
+            log.info("Slardar conf okHttpClient sslTrustAll");
             OkHttpClientHelper.sslTrustAll(builder);
         }
         return builder;
@@ -134,6 +134,7 @@ public class SlardarOkhttpConfiguration {
     @Bean
     @ConditionalOnMissingBean(OkHttpClient.class)
     public OkHttpClient okHttpClient(OkHttpClient.Builder builder) {
+        log.info("Slardar spring-bean okHttpClient");
         return builder.build();
     }
 }

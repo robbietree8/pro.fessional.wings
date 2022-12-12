@@ -13,16 +13,13 @@ import org.springframework.core.Ordered;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import pro.fessional.wings.slardar.concur.HazelcastGlobalLock;
 import pro.fessional.wings.slardar.concur.impl.RighterInterceptor;
-import pro.fessional.wings.slardar.context.GlobalAttributeHolder;
-import pro.fessional.wings.slardar.security.WingsUserDetails;
+import pro.fessional.wings.slardar.context.SecurityContextUtil;
 import pro.fessional.wings.warlock.errorhandle.AllExceptionResolver;
 import pro.fessional.wings.warlock.errorhandle.CodeExceptionResolver;
 import pro.fessional.wings.warlock.errorhandle.auto.BindExceptionAdvice;
 import pro.fessional.wings.warlock.spring.prop.WarlockEnabledProp;
 import pro.fessional.wings.warlock.spring.prop.WarlockErrorProp;
 import pro.fessional.wings.warlock.spring.prop.WarlockLockProp;
-
-import static pro.fessional.wings.warlock.service.user.WarlockUserAttribute.SaltByUid;
 
 
 /**
@@ -44,7 +41,7 @@ public class WarlockOtherBeanConfiguration {
     @ConditionalOnMissingBean(name = "codeExceptionResolver")
     @ConditionalOnProperty(name = WarlockEnabledProp.Key$codeExceptionHandler, havingValue = "true")
     public HandlerExceptionResolver codeExceptionResolver(MessageSource messageSource, WarlockErrorProp prop) {
-        log.info("Wings conf codeExceptionResolver");
+        log.info("WarlockShadow spring-bean codeExceptionResolver");
         final WarlockErrorProp.CodeException cp = prop.getCodeException();
         final CodeExceptionResolver bean = new CodeExceptionResolver(messageSource, cp.getHttpStatus(), cp.getContentType(), cp.getResponseBody());
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 1000);
@@ -55,7 +52,7 @@ public class WarlockOtherBeanConfiguration {
     @ConditionalOnMissingBean(name = "allExceptionResolver")
     @ConditionalOnProperty(name = WarlockEnabledProp.Key$allExceptionHandler, havingValue = "true")
     public HandlerExceptionResolver allExceptionResolver(WarlockErrorProp prop) {
-        log.info("Wings conf allExceptionResolver");
+        log.info("WarlockShadow spring-bean allExceptionResolver");
         final WarlockErrorProp.CodeException cp = prop.getAllException();
         final AllExceptionResolver bean = new AllExceptionResolver(cp.getHttpStatus(), cp.getContentType(), cp.getResponseBody());
         bean.setOrder(Ordered.LOWEST_PRECEDENCE);
@@ -65,13 +62,10 @@ public class WarlockOtherBeanConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public RighterInterceptor.SecretProvider righterInterceptorSecretProvider() {
-        log.info("Wings conf righterInterceptorSecretProvider");
-        return auth -> {
-            final Object dtl = auth.getDetails();
-            if (dtl instanceof WingsUserDetails) {
-                return GlobalAttributeHolder.getAttr(SaltByUid, ((WingsUserDetails) dtl).getUserId());
-            }
-            return null;
+        log.info("WarlockShadow spring-bean righterInterceptorSecretProvider");
+        return ss -> {
+            final Long uid = SecurityContextUtil.getUserId(false);
+            return uid == null ? null : ss.getId() + uid;
         };
     }
 
@@ -80,7 +74,7 @@ public class WarlockOtherBeanConfiguration {
     @ConditionalOnProperty(name = WarlockEnabledProp.Key$globalLock, havingValue = "true")
     public HazelcastGlobalLock hazelcastGlobalLock(HazelcastInstance hazelcastInstance, WarlockLockProp warlockLockProp) {
         final boolean hcp = warlockLockProp.isHazelcastCp();
-        log.info("Wings conf hazelcastGlobalLock, useCpIfSafe=" + hcp);
+        log.info("WarlockShadow spring-bean hazelcastGlobalLock, useCpIfSafe=" + hcp);
         return new HazelcastGlobalLock(hazelcastInstance, hcp);
     }
 }
