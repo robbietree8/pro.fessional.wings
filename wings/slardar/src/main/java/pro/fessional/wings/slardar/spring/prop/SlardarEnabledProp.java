@@ -17,7 +17,15 @@ public class SlardarEnabledProp {
     public static final String Key = "spring.wings.slardar.enabled";
 
     /**
-     * 是否默认配置jackson
+     * whether to enable auto-config
+     *
+     * @see #Key$autoconf
+     */
+    private boolean autoconf = true;
+    public static final String Key$autoconf = Key + ".autoconf";
+
+    /**
+     * whether to enable jackson default config
      *
      * @see #Key$jackson
      */
@@ -25,7 +33,7 @@ public class SlardarEnabledProp {
     public static final String Key$jackson = Key + ".jackson";
 
     /**
-     * 是否默认配置okhttp3
+     * whether to enable okhttp3 default config
      *
      * @see #Key$okhttp
      */
@@ -33,22 +41,22 @@ public class SlardarEnabledProp {
     public static final String Key$okhttp = Key + ".okhttp";
 
     /**
-     * 是否开启cache配置
+     * whether to enable cache config
      *
      * @see #Key$caching
      */
     private boolean caching = true;
     public static final String Key$caching = Key + ".caching";
     /**
-     * 是否开启cache配置的替换
+     * whether to enable cache enhancement of aop
      *
-     * @see #Key$caching
+     * @see #Key$cachingAop
      */
     private boolean cachingAop = true;
     public static final String Key$cachingAop = Key + ".caching-aop";
 
     /**
-     * 是否实现cookie定制
+     * whether to enable cookie customization
      *
      * @see #Key$cookie
      */
@@ -56,7 +64,7 @@ public class SlardarEnabledProp {
     public static final String Key$cookie = Key + ".cookie";
 
     /**
-     * 是否默认配置session
+     * whether to enable session default config
      *
      * @see #Key$session
      */
@@ -64,7 +72,7 @@ public class SlardarEnabledProp {
     public static final String Key$session = Key + ".session";
 
     /**
-     * 是否默认配置session hazelcast
+     * whether to enable session hazelcast config
      *
      * @see #Key$sessionHazelcast
      */
@@ -72,7 +80,7 @@ public class SlardarEnabledProp {
     public static final String Key$sessionHazelcast = Key + ".session-hazelcast";
 
     /**
-     * 是否spring Async和线程池配置
+     * whether to enable spring Async and thread pool
      *
      * @see #Key$async
      */
@@ -80,7 +88,7 @@ public class SlardarEnabledProp {
     public static final String Key$async = Key + ".async";
 
     /**
-     * 是否防范编辑权限提升
+     * whether to prevent forgery editing
      *
      * @see #Key$righter
      */
@@ -88,7 +96,7 @@ public class SlardarEnabledProp {
     public static final String Key$righter = Key + ".righter";
 
     /**
-     * 是否开启Debounce默认的Interceptor和图形验证码
+     * whether to enable Interceptor of debounce
      *
      * @see #Key$debounce
      */
@@ -96,7 +104,7 @@ public class SlardarEnabledProp {
     public static final String Key$debounce = Key + ".debounce";
 
     /**
-     * 是否开启reuse stream filter
+     * whether to enable reuse stream filter
      *
      * @see #Key$restream
      */
@@ -104,7 +112,7 @@ public class SlardarEnabledProp {
     public static final String Key$restream = Key + ".restream";
 
     /**
-     * 是否开启FirstBlood默认的Interceptor和图形验证码
+     * whether to enable Interceptor of FirstBlood
      *
      * @see #Key$firstBlood
      */
@@ -112,13 +120,15 @@ public class SlardarEnabledProp {
     public static final String Key$firstBlood = Key + ".first-blood";
 
     /**
+     * whether to enable image captcha Interceptor of FirstBlood
+     *
      * @see #Key$firstBloodImage
      */
     private String firstBloodImage = "";
     public static final String Key$firstBloodImage = Key + ".first-blood-image";
 
     /**
-     * 是否开启DoubleKill默认的AOP
+     * whether to enable DoubleKill default AOP
      *
      * @see #Key$doubleKill
      */
@@ -126,7 +136,7 @@ public class SlardarEnabledProp {
     public static final String Key$doubleKill = Key + ".double-kill";
 
     /**
-     * 是否开启wings的PageQuery webmvc resolver
+     * whether to enable PageQuery webmvc resolver of Wings
      *
      * @see #Key$pagequery
      */
@@ -134,7 +144,7 @@ public class SlardarEnabledProp {
     public static final String Key$pagequery = Key + ".pagequery";
 
     /**
-     * 是否开启wings的 webmvc local datetime converter
+     * whether to enable webmvc localdatetime converter of Wings
      *
      * @see #Key$datetime
      */
@@ -142,7 +152,7 @@ public class SlardarEnabledProp {
     public static final String Key$datetime = Key + ".datetime";
 
     /**
-     * 是否开启wings的jackson对Double，Float，BigDecimal的精度限定
+     * whether to enable the Jackson precision limit of wings for Double, Float, BigDecimal
      *
      * @see #Key$number
      */
@@ -150,7 +160,15 @@ public class SlardarEnabledProp {
     public static final String Key$number = Key + ".number";
 
     /**
-     * 是否配置undertow ws for UT026010: Buffer pool
+     * whether to enable serialization of the resource into a readable URL with Wings' Jackson config
+     *
+     * @see #Key$resource
+     */
+    private boolean resource = true;
+    public static final String Key$resource = Key + ".resource";
+
+    /**
+     * whether to disable "undertow ws for UT026010: Buffer pool"
      *
      * @see #Key$undertowWs
      */
@@ -158,7 +176,7 @@ public class SlardarEnabledProp {
     public static final String Key$undertowWs = Key + ".undertow-ws";
 
     /**
-     * 是否开启terminal Resolver
+     * whether to enable remote Resolver
      *
      * @see #Key$remote
      */
@@ -166,7 +184,7 @@ public class SlardarEnabledProp {
     public static final String Key$remote = Key + ".remote";
 
     /**
-     * 是否开启i18n Resolver
+     * whether to enable i18n Resolver
      *
      * @see #Key$locale
      */
@@ -174,7 +192,7 @@ public class SlardarEnabledProp {
     public static final String Key$locale = Key + ".locale";
 
     /**
-     * 是否解析 WingsTerminalContext
+     * whether to enable WingsTerminalContext
      *
      * @see #Key$terminal
      */
@@ -182,7 +200,7 @@ public class SlardarEnabledProp {
     public static final String Key$terminal = Key + ".terminal";
 
     /**
-     * 是否开启captcha配置
+     * whether to enable captcha config
      *
      * @see #Key$captcha
      */
@@ -190,7 +208,7 @@ public class SlardarEnabledProp {
     public static final String Key$captcha = Key + ".captcha";
 
     /**
-     * 是否开启熔断设置
+     * whether to enable overload filter
      *
      * @see #Key$overload
      */
@@ -198,7 +216,7 @@ public class SlardarEnabledProp {
     public static final String Key$overload = Key + ".overload";
 
     /**
-     * 是否支持 domain-extend
+     * whether to enable domain-extend
      *
      * @see #Key$domainExtend
      */
@@ -206,7 +224,7 @@ public class SlardarEnabledProp {
     public static final String Key$domainExtend = Key + ".domain-extend";
 
     /**
-     * 是否开启默认的swagger配置
+     * whether to enable swagger config
      *
      * @see #Key$swagger
      */
@@ -214,8 +232,8 @@ public class SlardarEnabledProp {
     public static final String Key$swagger = Key + ".swagger";
 
     /**
-     * 在devtool时，以standalone方式启动，可减少集群影响。
-     * 高级测试，参考 https://github.com/hazelcast/hazelcast-simulator/blob/master/README.md
+     * Start as standalone at devtool to reduce cluster impact
+     * see <a href="https://github.com/hazelcast/hazelcast-simulator/blob/master/README.md">hazelcast-simulator</a>
      *
      * @see #Key$mockHazelcast
      */
@@ -223,7 +241,7 @@ public class SlardarEnabledProp {
     public static final String Key$mockHazelcast = Key + ".mock-hazelcast";
 
     /**
-     * 是否开启监控
+     * whether to enable monitor
      *
      * @see #Key$monitor
      */
@@ -231,7 +249,7 @@ public class SlardarEnabledProp {
     public static final String Key$monitor = Key + ".monitor";
 
     /**
-     * 是否开启Jvm监控
+     * whether to enable Jvm monitor
      *
      * @see #Key$monitorJvm
      */
@@ -239,7 +257,7 @@ public class SlardarEnabledProp {
     public static final String Key$monitorJvm = Key + ".monitor-jvm";
 
     /**
-     * 是否开启Log监控
+     * whether to enable Log monitor
      *
      * @see #Key$monitorLog
      */
@@ -247,7 +265,7 @@ public class SlardarEnabledProp {
     public static final String Key$monitorLog = Key + ".monitor-log";
 
     /**
-     * 是否开启SpringBootAdmin配置
+     * whether to enable SpringBootAdmin config
      *
      * @see #Key$bootAdmin
      */
@@ -255,7 +273,7 @@ public class SlardarEnabledProp {
     public static final String Key$bootAdmin = Key + ".boot-admin";
 
     /**
-     * 是否支持动态Tweaking
+     * whether to enable dynamic tweaking
      *
      * @see #Key$tweaking
      */

@@ -1,5 +1,8 @@
 package pro.fessional.wings.warlock.security.handler;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -14,14 +17,11 @@ import pro.fessional.wings.warlock.security.SafeHttpHelper;
 import pro.fessional.wings.warlock.spring.prop.WarlockJustAuthProp;
 import pro.fessional.wings.warlock.spring.prop.WarlockSecurityProp;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * cookie和header返回sid,
- * 默认情况下 cookie是sid的base64字符串
+ * Return SessionId in cookie and header,
+ * In Spring default, the sessionId in cookie is base64 encoded
  *
  * @author trydofor
  * @since 2021-02-17
@@ -43,7 +43,6 @@ public class LoginSuccessHandler extends NonceLoginSuccessHandler implements Ini
                               @Nullable String sid, long uid, @Nullable String state) throws IOException, ServletException {
 
         if (state != null && !state.isEmpty()) {
-            writeSidHeader(res, sid);
             if (state.startsWith("/") || isSafeRedirect(state)) {
                 log.info("redirect to {}", state);
                 res.sendRedirect(state);
@@ -57,17 +56,7 @@ public class LoginSuccessHandler extends NonceLoginSuccessHandler implements Ini
                 super.onResponse(req, res, aun, sid, uid, state);
             }
             else {
-                writeSidHeader(res, sid);
                 writeResponseBody(warlockSecurityProp.getLoginSuccessBody(), req, res, aun, sid, uid, state);
-            }
-        }
-    }
-
-    private void writeSidHeader(@NotNull HttpServletResponse res, @Nullable String sid) {
-        if (slardarSessionProp != null) {
-            final String hn = slardarSessionProp.getHeaderName();
-            if (hn != null) {
-                res.setHeader(hn, sid);
             }
         }
     }

@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -29,13 +30,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @since 2021-07-05
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties =
-                {"debug = true",
-                 "spring.wings.slardar.enabled.number=true",
-                 "wings.slardar.number.decimal.separator=_",
-                 "wings.slardar.number.floats.format=#.00",
-                 "wings.slardar.number.decimal.format=#.00",
-                })
+        properties = {
+                "spring.wings.slardar.enabled.number=true",
+                "wings.slardar.number.decimal.separator=_",
+                "wings.slardar.number.floats.format=#.00",
+                "wings.slardar.number.decimal.format=#.00",
+        })
 @Slf4j
 public class DecimalFormatTest {
 
@@ -86,6 +86,7 @@ public class DecimalFormatTest {
         private Double doubleObj = doubleVal;
 
         private BigDecimal decimalObj = new BigDecimal("123456.789");
+        private BigInteger integerObj = new BigInteger("123456789");
     }
 
     @Data
@@ -110,6 +111,10 @@ public class DecimalFormatTest {
         private BigDecimal decimalObj = new BigDecimal("123456.789");
         @JsonFormat(pattern = "￥,####.0", shape = JsonFormat.Shape.STRING)
         private BigDecimal decimalShp = new BigDecimal("123456.789");
+        @JsonFormat(pattern = "￥,####.0")
+        private BigInteger integerObj = new BigInteger("123456789");
+        @JsonFormat(pattern = "￥,####.0", shape = JsonFormat.Shape.STRING)
+        private BigInteger integerShp = new BigInteger("123456789");
     }
 
     @Data
@@ -132,6 +137,8 @@ public class DecimalFormatTest {
         private Double doubleObj = doubleVal;
         @JsonRawValue()
         private BigDecimal decimalObj = new BigDecimal("123456.789");
+        @JsonRawValue()
+        private BigInteger integerObj = new BigInteger("123456789");
     }
 
     @Test
@@ -146,7 +153,8 @@ public class DecimalFormatTest {
                                 + "\"floatObj\":\"123456.78\","
                                 + "\"doubleVal\":\"123456.78\","
                                 + "\"doubleObj\":\"123456.78\","
-                                + "\"decimalObj\":\"123456.78\"}"
+                                + "\"decimalObj\":\"123456.78\","
+                                + "\"integerObj\":\"123456789.00\"}"
                 , decStr);
     }
 
@@ -162,7 +170,8 @@ public class DecimalFormatTest {
                                 + "\"floatObj\":123456.79,"
                                 + "\"doubleVal\":123456.789,"
                                 + "\"doubleObj\":123456.789,"
-                                + "\"decimalObj\":123456.789}"
+                                + "\"decimalObj\":123456.789,"
+                                + "\"integerObj\":123456789}"
                 , decRaw);
 
     }
@@ -180,7 +189,9 @@ public class DecimalFormatTest {
                                 + "\"doubleVal\":\"12,3456.7\","
                                 + "\"doubleObj\":\"12,3456.7\","
                                 + "\"decimalObj\":\"￥12_3456.7\","
-                                + "\"decimalShp\":\"￥12,3456.7\"}"
+                                + "\"decimalShp\":\"￥12,3456.7\","
+                                + "\"integerObj\":\"￥1_2345_6789.0\","
+                                + "\"integerShp\":\"￥1,2345,6789.0\"}"
                 , decFmt);
     }
 

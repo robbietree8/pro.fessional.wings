@@ -19,7 +19,8 @@ import static pro.fessional.wings.faceless.util.FlywaveRevisionScanner.scan;
  */
 
 @SpringBootTest
-@Disabled("手动执行，JavaMainJooqGenSample 需要 ")
+@Disabled("Init database, have handled by devs")
+@SuppressWarnings("NewClassNamingConvention")
 public class WingsInitDatabaseSample {
 
     @Setter(onMethod_ = {@Autowired})
@@ -27,12 +28,12 @@ public class WingsInitDatabaseSample {
 
     @Test
     public void init0601() {
-        // 初始
+        // init
         val sqls = scan(REVISION_PATH_MASTER, WingsRevision.V01_19_0521_01_EnumI18n.classpath());
         schemaRevisionManager.publishRevision(WingsRevision.V00_19_0512_01_Schema.revision(), 0);
         schemaRevisionManager.checkAndInitSql(sqls, 0, false);
 
-        // 升级
+        // upgrade
         schemaRevisionManager.publishRevision(REVISION_TEST_V1, 0);
     }
 }

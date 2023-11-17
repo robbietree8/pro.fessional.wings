@@ -15,10 +15,10 @@ import org.springframework.test.context.ActiveProfiles;
 import pro.fessional.wings.faceless.WingsTestHelper;
 import pro.fessional.wings.faceless.convention.EmptyValue;
 import pro.fessional.wings.faceless.database.WingsTableCudHandler.Cud;
-import pro.fessional.wings.faceless.database.autogen.tables.Tst中文也分表Table;
-import pro.fessional.wings.faceless.database.autogen.tables.daos.Tst中文也分表Dao;
-import pro.fessional.wings.faceless.database.autogen.tables.pojos.Tst中文也分表;
-import pro.fessional.wings.faceless.database.autogen.tables.records.Tst中文也分表Record;
+import pro.fessional.wings.faceless.database.autogen.tables.TstShardingTable;
+import pro.fessional.wings.faceless.database.autogen.tables.daos.TstShardingDao;
+import pro.fessional.wings.faceless.database.autogen.tables.pojos.TstSharding;
+import pro.fessional.wings.faceless.database.autogen.tables.records.TstShardingRecord;
 import pro.fessional.wings.faceless.database.jooq.listener.TableCudListener;
 import pro.fessional.wings.faceless.flywave.SchemaRevisionManager;
 import pro.fessional.wings.faceless.service.WingsTableCudHandlerTest;
@@ -44,11 +44,11 @@ import static pro.fessional.wings.faceless.util.FlywaveRevisionScanner.REVISION_
  * @since 2019-09-27
  */
 
+@SuppressWarnings("CanBeFinal")
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @ActiveProfiles("init")
 @SpringBootTest(properties = {
-        "debug = true",
-        "wings.faceless.jooq.cud.table[tst_中文也分表]=id,login_info",
+        "wings.faceless.jooq.cud.table[tst_sharding]=id,login_info",
         "spring.wings.faceless.jooq.enabled.listen-table-cud=true"
 })
 @Tag("init")
@@ -62,7 +62,7 @@ public class JooqTableCudListenerTest {
     };
 
     @Setter(onMethod_ = {@Autowired})
-    private Tst中文也分表Dao testDao;
+    private TstShardingDao testDao;
 
     @Setter(onMethod_ = {@Autowired})
     private WingsTestHelper wingsTestHelper;
@@ -85,7 +85,7 @@ public class JooqTableCudListenerTest {
     public void test1Create() {
 
         final LocalDateTime now = LocalDateTime.now();
-        Tst中文也分表 pojo = new Tst中文也分表();
+        TstSharding pojo = new TstSharding();
         pojo.setId(301L);
         pojo.setCommitId(-1L);
         pojo.setCreateDt(now);
@@ -95,38 +95,38 @@ public class JooqTableCudListenerTest {
         pojo.setLoginInfo("login-info-301");
         pojo.setOtherInfo("other-info-301");
 
-        testcaseNotice("单个插入 normal");
+        testcaseNotice("single insert normal");
         assertCud(false, Cud.Create, singletonList(singletonList(301L)), () -> testDao.insert(pojo),
                 "insert into");
 
 
-        testcaseNotice("单个插入 ignore");
+        testcaseNotice("single insert ignore");
         assertCud(false, Cud.Create, singletonList(singletonList(301L)), () -> testDao.insertInto(pojo, true),
                 "insert ignore into");
 
-        testcaseNotice("单个插入 replace");
-        assertCud(false, Cud.Create, singletonList(singletonList(301L)), () -> testDao.insertInto(pojo, false),
+        testcaseNotice("single insert replace");
+        assertCud(false, Cud.Update, singletonList(singletonList(301L)), () -> testDao.insertInto(pojo, false),
                 "duplicate key update");
 
-        final Tst中文也分表Table t = testDao.getTable();
+        final TstShardingTable t = testDao.getTable();
         final long c1 = testDao.count(t, t.Id.eq(301L));
         Assertions.assertEquals(1L, c1);
 
         val rds = Arrays.asList(
-                new Tst中文也分表Record(302L, now, now, now, 9L, "login-info-302", "", ZH_CN),
-                new Tst中文也分表Record(303L, now, now, now, 9L, "login-info-303", "", ZH_CN),
-                new Tst中文也分表Record(304L, now, now, now, 9L, "login-info-304", "", ZH_CN)
+                new TstShardingRecord(302L, now, now, now, 9L, "login-info-302", "", ZH_CN),
+                new TstShardingRecord(303L, now, now, now, 9L, "login-info-303", "", ZH_CN),
+                new TstShardingRecord(304L, now, now, now, 9L, "login-info-304", "", ZH_CN)
         );
 
-        testcaseNotice("批量插入 normal");
+        testcaseNotice("batch insert normal");
         assertCud(false, Cud.Create, Arrays.asList(singletonList(302L), singletonList(303L), singletonList(304L)), () -> testDao.batchInsert(rds, 10),
                 "insert into");
 
-        testcaseNotice("批量插入 ignore");
+        testcaseNotice("batch insert ignore");
         assertCud(false, null, Collections.emptyList(), () -> testDao.batchInsert(rds, 10, true),
                 "insert ignore into");
 
-        testcaseNotice("批量插入 replace");
+        testcaseNotice("batch insert replace");
         assertCud(false, null, Collections.emptyList(), () -> testDao.batchInsert(rds, 10, false),
                 "duplicate key update");
 
@@ -137,12 +137,13 @@ public class JooqTableCudListenerTest {
     @Test
     public void test2Update() {
 
-        final Tst中文也分表Table t = testDao.getTable();
-        Tst中文也分表 pojo = new Tst中文也分表();
+        final TstShardingTable t = testDao.getTable();
+
+        TstSharding pojo = new TstSharding();
         pojo.setId(301L);
         pojo.setCommitId(-301L);
 
-        testcaseNotice("单个更新");
+        testcaseNotice("single update");
         assertCud(true, Cud.Update, singletonList(singletonList(301L)), () -> testDao.update(pojo, true),
                 "update");
 
@@ -150,7 +151,7 @@ public class JooqTableCudListenerTest {
         Assertions.assertTrue(StringUtils.containsIgnoreCase(LastSql.get(), "select count"));
         Assertions.assertEquals(1L, c1);
 
-        testcaseNotice("批量更新");
+        testcaseNotice("batch update");
         assertCud(false, Cud.Update, singletonList(Arrays.asList(302L, 303L, 302L, 304L)), () -> testDao
                         .ctx()
                         .update(t)
@@ -165,22 +166,22 @@ public class JooqTableCudListenerTest {
 
     @Test
     public void test4Delete() {
-        final Tst中文也分表Table t = testDao.getTable();
-        testcaseNotice("单个删除");
+        final TstShardingTable t = testDao.getTable();
+        testcaseNotice("single delete");
         assertCud(false, Cud.Delete, singletonList(singletonList(301L)), () -> testDao
-                .ctx()
-                .delete(t)
-                .where(t.Id.eq(301L))
-                .execute(),
+                        .ctx()
+                        .delete(t)
+                        .where(t.Id.eq(301L))
+                        .execute(),
                 "delete from"
         );
 
-        testcaseNotice("范围删除");
+        testcaseNotice("batch delete");
         assertCud(false, Cud.Delete, singletonList(Arrays.asList(302L, 304L)), () -> testDao
-                .ctx()
-                .delete(t)
-                .where(t.Id.ge(302L).and(t.Id.le(304L)))
-                .execute(),
+                        .ctx()
+                        .delete(t)
+                        .where(t.Id.ge(302L).and(t.Id.le(304L)))
+                        .execute(),
                 "delete from"
         );
 
@@ -209,7 +210,7 @@ public class JooqTableCudListenerTest {
         else {
             for (int i = 0, l = ids.size(); i < l; i++) {
                 Assertions.assertEquals(cud, d.get(i));
-                Assertions.assertEquals("tst_中文也分表", t.get(i));
+                Assertions.assertEquals("tst_sharding", t.get(i));
                 Assertions.assertEquals(ids.get(i), f.get(i).get("id"));
             }
             Assertions.assertEquals(ids.size(), f.size());

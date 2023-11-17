@@ -17,6 +17,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 import pro.fessional.mirana.bits.MdHelp;
+import pro.fessional.mirana.code.RandCode;
 import pro.fessional.wings.slardar.security.PasssaltEncoder;
 import pro.fessional.wings.slardar.security.PasswordHelper;
 import pro.fessional.wings.slardar.security.WingsAuthCheckService;
@@ -26,10 +27,18 @@ import pro.fessional.wings.slardar.security.WingsUserDetailsService;
 import pro.fessional.wings.slardar.security.impl.DefaultWingsAuthDetails;
 import pro.fessional.wings.slardar.security.pass.DefaultPasssaltEncoder;
 
+import static pro.fessional.wings.slardar.errcode.AuthnErrorEnum.BadCredentials;
+
 /**
- * 兼容DaoAuthenticationProvider，可替换之。如果设置onlyWingsBindAuthnToken=true，则只处理 WingsBindAuthnToken。
- * 需要注意的是，WingsBindAuthnToken 继承UsernamePasswordAuthenticationToken，可能会被其他Provider处理。
- * 不能继承DaoAuthenticationProvider，因为final retrieveUser，但mitigateAgainstTimingAttack很好，全部复制。
+ * <pre>
+ * Compatible with DaoAuthenticationProvider and can be replaced.
+ * If onlyWingsBindAuthnToken=true, only WingsBindAuthnToken is processed.
+ *
+ * Note that WingsBindAuthnToken inherits UsernamePasswordAuthenticationToken
+ * and may be processed by other Providers.
+ * Can't inherit DaoAuthenticationProvider because final `retrieveUser`,
+ * but `mitigateAgainstTimingAttack` is fine, copy all.
+ * </pre>
  *
  * @author trydofor
  * @since 2021-02-08
@@ -37,9 +46,6 @@ import pro.fessional.wings.slardar.security.pass.DefaultPasssaltEncoder;
 public class WingsBindAuthProvider extends AbstractUserDetailsAuthenticationProvider {
 
     private final static Log log = LogFactory.getLog(WingsBindAuthProvider.class);
-
-    private static final String BadCredentialsCode = "AbstractUserDetailsAuthenticationProvider.badCredentials";
-    private static final String USER_NOT_FOUND_PASSWORD = "TimingAttackProtectionUserNotFoundPassword";
 
     private volatile String userNotFoundEncodedPassword = null;
     private boolean onlyWingsBindAuthnToken = false;
@@ -68,7 +74,7 @@ public class WingsBindAuthProvider extends AbstractUserDetailsAuthenticationProv
         if (wingsAuthCheckService != null && isWingsUserDetails && authentication instanceof WingsBindAuthToken) {
             if (!wingsAuthCheckService.check((WingsUserDetails) userDetails, (WingsBindAuthToken) authentication)) {
                 log.debug("Failed to post check userDetails and authentication");
-                throw new BadCredentialsException(messages.getMessage(BadCredentialsCode, "Bad credentials"));
+                throw new BadCredentialsException(messages.getMessage(BadCredentials.getCode(), BadCredentials.getHint()));
             }
         }
     }
@@ -84,9 +90,7 @@ public class WingsBindAuthProvider extends AbstractUserDetailsAuthenticationProv
         try {
             final UserDetails userDetails;
 
-            if (userDetailsService instanceof WingsUserDetailsService && authentication instanceof WingsBindAuthToken) {
-                WingsUserDetailsService winUds = (WingsUserDetailsService) userDetailsService;
-                WingsBindAuthToken winTkn = (WingsBindAuthToken) authentication;
+            if (userDetailsService instanceof WingsUserDetailsService winUds && authentication instanceof WingsBindAuthToken winTkn) {
                 userDetails = buildUserDetails(username, winUds, winTkn);
             }
             else {
@@ -153,30 +157,30 @@ public class WingsBindAuthProvider extends AbstractUserDetailsAuthenticationProv
     protected void checkPassword(UserDetails userDetails, UsernamePasswordAuthenticationToken authentication) {
         if (authentication.getCredentials() == null) {
             log.debug("Failed to authenticate since no credentials provided");
-            throw new BadCredentialsException(messages.getMessage(BadCredentialsCode, "Bad credentials"));
+            throw new BadCredentialsException(messages.getMessage(BadCredentials.getCode(), BadCredentials.getHint()));
         }
 
         String presentedPassword = presentPassword(userDetails, authentication);
 
         if (!passwordEncoder.matches(presentedPassword, userDetails.getPassword())) {
             log.debug("Failed to authenticate since password does not match stored value");
-            throw new BadCredentialsException(messages.getMessage(BadCredentialsCode, "Bad credentials"));
+            throw new BadCredentialsException(messages.getMessage(BadCredentials.getCode(), BadCredentials.getHint()));
         }
     }
 
     protected String presentPassword(UserDetails details, Authentication auth) {
         String presentedPassword = auth.getCredentials().toString();
-        // 加盐处理
-        if (passsaltEncoder != null && details instanceof WingsUserDetails) {
+        // salt
+        if (passsaltEncoder != null && details instanceof WingsUserDetails dtl) {
             PasswordHelper helper = new PasswordHelper(passwordEncoder, passsaltEncoder);
-            presentedPassword = helper.salt(presentedPassword, ((WingsUserDetails) details).getPasssalt());
+            presentedPassword = helper.salt(presentedPassword, dtl.getPasssalt());
         }
         return presentedPassword;
     }
 
     protected void prepareTimingAttackProtection() {
         if (userNotFoundEncodedPassword == null) {
-            userNotFoundEncodedPassword = passwordEncoder.encode(USER_NOT_FOUND_PASSWORD);
+            userNotFoundEncodedPassword = passwordEncoder.encode(RandCode.strong(20));
         }
     }
 
@@ -188,7 +192,6 @@ public class WingsBindAuthProvider extends AbstractUserDetailsAuthenticationProv
     }
 
     // setter & getter
-
 
     public PasssaltEncoder getPasssaltEncoder() {
         return this.passsaltEncoder;

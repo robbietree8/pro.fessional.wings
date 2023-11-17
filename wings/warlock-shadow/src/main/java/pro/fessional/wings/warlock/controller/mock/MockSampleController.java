@@ -1,6 +1,8 @@
 package pro.fessional.wings.warlock.controller.mock;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,8 +21,6 @@ import pro.fessional.wings.slardar.concur.impl.RighterContext;
 import pro.fessional.wings.warlock.spring.prop.WarlockEnabledProp;
 import pro.fessional.wings.warlock.spring.prop.WarlockUrlmapProp;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
@@ -35,17 +35,17 @@ import java.util.Set;
 @ConditionalOnProperty(name = WarlockEnabledProp.Key$controllerMock, havingValue = "true")
 public class MockSampleController {
 
-    @Operation(summary = "验证码，获得图片，有interceptor处理", description =
-            "# Usage \n"
-            + "参考POST说明，GET方法主要用来获取及刷新验证码图片。\n"
-            + "若Accept中含有base64时，则返回base64格式的图片。\n"
-            + "参数参考，FirstBloodImageHandler\n"
-            + "## Params \n"
-            + "* @param quest-captcha-image - 验证码，用来获取新的验证图，或检查当前验证码\n"
-            + "## Returns \n"
-            + "* @return {200} 验证码不匹配时，新的图片流或base64图片 \n"
-            + "* @return {200} 验证码匹配时，空body \n"
-            + "")
+    @Operation(summary = "Get captcha image, handle by interceptor", description = """
+            # Usage
+            The GET is mainly used to get and refresh the CAPTCHA image.
+            If Accept contains `base64`, it returns the image in base64 format.
+            see mockCaptchaPost (POST method) and FirstBloodImageHandler
+            ## Params
+            * @param quest-captcha-image - Captcha, to check captcha or get a new captcha
+            ## Returns
+            * @return {200} captcha not matched, new image stream or base64 string
+            * @return {200} captcha matched, empty body
+            """)
     @GetMapping(value = "${" + WarlockUrlmapProp.Key$mockCaptcha + "}")
     @ResponseBody
     @FirstBlood
@@ -54,21 +54,21 @@ public class MockSampleController {
         return R.ok("should NOT return this, Please use POST. Quest=" + quest + ", Accept=" + accept);
     }
 
-    @Operation(summary = "验证码，获得结果，有interceptor处理", description =
-            "# Usage \n"
-            + "客户端正常访问此URL，验证图片由interceptor处理\n"
-            + "①服务器需要验证码时，以406(Not Acceptable)返回提示json\n"
-            + "②客户端在header和cookie中获得Client-Ticket的token，并每次都发送\n"
-            + "③客户端在URL后增加quest-captcha-image={vcode}获取验证码图片（可直接使用）\n"
-            + "④客户端在URL后增加check-captcha-image={vcode}提交验证码\n"
-            + "⑤服务器端自动校验Client-Ticket和check-captcha-image，完成验证或放行\n"
-            + "## Params \n"
-            + "* @param data - 测试数据，验证通过时，原路返回\n"
-            + "* @param check-captcha-image - 提交的验证码，用来验证\n"
-            + "## Returns \n"
-            + "* @return {200} 验证码通过时，执行被保护的URL结果 \n"
-            + "* @return {406} 触发了验证码机制，默认{\"success\":false,\"message\":\"need a verify code\"} \n"
-            + "")
+    @Operation(summary = "Get captcha image, handle by interceptor", description = """
+            # Usage
+            The client accesses this URL normally, and the captcha image is handled by the interceptor
+            (1) Server returns json with 406(Not Acceptable) if CAPTCHA is required
+            (2) Client gets Client-Ticket token in header and cookie and sends it every time
+            (3) Client adds quest-captcha-image={vcode} after the URL to get the CAPTCHA image (can be used directly)
+            (4) Client adds check-captcha-image={vcode} after the URL to submit the CAPTCHA
+            (5) Server auto checks Client-Ticket and check-captcha-image
+            ## Params
+            * @param data - test data, return if pass
+            * @param check-captcha-image - submit captcha to check
+            ## Returns
+            * @return {200} pass captcha, response by the protected URL
+            * @return {406} trigger captcha, return `{"success":false,"message":"need a verify code"}`
+            """)
     @PostMapping(value = "${" + WarlockUrlmapProp.Key$mockCaptcha + "}")
     @ResponseBody
     @FirstBlood
@@ -78,16 +78,16 @@ public class MockSampleController {
         return R.ok("check=" + check, data);
     }
 
-    @Operation(summary = "防连击，需要2次请求", description =
-            "# Usage \n"
-            + "①首次执行，会等待sleep秒数后完成。\n"
-            + "②在①执行过程中再次执行，会返回202(Accepted)\n"
-            + "## Params \n"
-            + "* @param sleep - sleep秒数，模拟慢响应\n"
-            + "## Returns \n"
-            + "* @return {200 | Result(sleep)} 返回sleep秒数 \n"
-            + "* @return {202 | Result(false, data)} 执行期间再次请求，直接任务id \n"
-            + "")
+    @Operation(summary = "Avoid double click, need 2 fast requests", description = """
+            # Usage
+            (1) 1st request, set `sleep` second, and waiting for response
+            (2) 2nd request during (1), will response 202(Accepted)
+            ## Params
+            * @param sleep - sleep to simulate slow operation
+            ## Returns
+            * @return {200 | Result(sleep)} return the sleep
+            * @return {202 | Result(false, data)} in 2nd request, return task id
+            """)
     @PostMapping(value = "${" + WarlockUrlmapProp.Key$mockDoubler + "}")
     @ResponseBody
     @DoubleKill(principal = false, expression = "#root.method")
@@ -97,15 +97,15 @@ public class MockSampleController {
         return R.okData(sleep);
     }
 
-    @Operation(summary = "防篡改，GET获得编辑header(Right-Editor)", description =
-            "# Usage \n"
-            + "①GET 情况获得编辑header，默认key为Right-Editor\n"
-            + "②参加POST请求的文档\n"
-            + "## Params \n"
-            + "* @param data - 防篡改的特征数据\n"
-            + "## Returns \n"
-            + "* @return {200 | Result(data)} 返回data参数 \n"
-            + "")
+    @Operation(summary = "Tamper-proof, GET edit header (Right-Editor)", description = """
+            # Usage
+            (1) GET the edit header, default key is `Right-Editor`
+            (2) see mockRighterSave (POST method)
+            ## Params
+            * @param data - data to audit
+            ## Returns
+            * @return {200 | Result(data)} data
+            """)
     @GetMapping(value = "${" + WarlockUrlmapProp.Key$mockRighter + "}")
     @ResponseBody
     @Righter(false)
@@ -114,16 +114,17 @@ public class MockSampleController {
         return R.okData(data);
     }
 
-    @Operation(summary = "防篡改，提交数据及编辑header(Right-Editor)", description =
-            "# Usage \n"
-            + "①参考GET\n"
-            + "②提交时，携带编辑Header\n"
-            + "## Params \n"
-            + "* @param Right-Editor - 编辑header，从GET响应中获得\n"
-            + "## Returns \n"
-            + "* @return {200 | Result(data)} 返回GET时的data数据 \n"
-            + "* @return {409 | Result(false)} Right-Editor验证失败 \n"
-            + "")
+    @SuppressWarnings("UastIncorrectHttpHeaderInspection")
+    @Operation(summary = "Tamper-proof, Submit changed data with Edit Header (Right-Editor)", description = """
+            # Usage
+            (1) see GET
+            (2) submit changed data with the Edit Header
+            ## Params
+            * @param Right-Editor - Edit header, from the GET response
+            ## Returns
+            * @return {200 | Result(data)} return the data send in GET
+            * @return {409 | Result(false)} Right-Editor if audit fails
+            """)
     @PostMapping(value = "${" + WarlockUrlmapProp.Key$mockRighter + "}")
     @ResponseBody
     @Righter
@@ -132,19 +133,19 @@ public class MockSampleController {
         return R.ok(hd, data);
     }
 
-    @Operation(summary = "回声测试，输入啥返回啥。", description =
-            "# Usage \n"
-            + "按输入返回status，header, cookie和RequestBody\n"
-            + "## Params \n"
-            + "* @param [status=200] - http status 默认200\n"
-            + "* @param [header] - http header k1=v1等号分隔\n"
-            + "* @param [cookie] - http cookie k1=v1等号分隔\n"
-            + "* @param [httponly] - httponly的cookie名，如k1\n"
-            + "* @param [secure] - https的cookie名，如k1\n"
-            + "* @param - request body\n"
-            + "## Returns \n"
-            + "* @return {200 | Result(data)} 返回GET时的data数据 \n"
-            + "")
+    @Operation(summary = "Echo test, output what you input", description = """
+            # Usage
+            Response the input status, header, cookie and RequestBody
+            ## Params
+            * @param [status=200] - http status, default 200
+            * @param [header] - http header k1=v1, `=` seperated
+            * @param [cookie] - http cookie k1=v1, `=` seperated
+            * @param [httponly] - cookie name that is httponly, e.g. k1
+            * @param [secure] - cookie name that is https, e.g. k1
+            * @param - request body
+            ## Returns
+            * @return {200 | Result(data)} response what input
+            """)
     @PostMapping(value = "${" + WarlockUrlmapProp.Key$mockEcho0o0 + "}")
     public void mockEcho(
             @RequestParam(value = "status", required = false, defaultValue = "200") int status,

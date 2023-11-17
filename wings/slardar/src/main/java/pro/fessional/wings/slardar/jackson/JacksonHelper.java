@@ -2,6 +2,7 @@ package pro.fessional.wings.slardar.jackson;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import lombok.SneakyThrows;
@@ -11,22 +12,29 @@ import org.jetbrains.annotations.Nullable;
 import pro.fessional.mirana.text.WhiteUtil;
 
 /**
+ * <pre>
+ * <a href="https://github.com/FasterXML/jackson-dataformat-xml#known-limitations">XML limitation</a>
+ * The common uses are:
+ * (1) single element node, XML can not distinguish between a single value or only one value in the array, unless nested wrap.
+ * (2) Xml can not recognize the data type, while Json has string, number, boolean, object, array
+ * </pre>
+ *
  * @author trydofor
  * @since 2022-11-05
  */
 public class JacksonHelper {
 
-    public static final ObjectMapper JsonDefault = new ObjectMapper();
-    public static final XmlMapper XmlDefault = new XmlMapper();
+    public static final ObjectMapper JsonPlain = new ObjectMapper();
+    public static final XmlMapper XmlPlain = new XmlMapper();
 
-    private static ObjectMapper JsonWings = JsonDefault;
-    private static XmlMapper XmlWings = XmlDefault;
+    private static ObjectMapper JsonWings = JsonPlain;
+    private static XmlMapper XmlWings = XmlPlain;
 
     /**
-     * 初始化Wings配置的ObjectMapper
+     * Init the ObjectMapper for Wings configuration
      *
-     * @param jsonMapper 负责json
-     * @param xmlMapper  负责xml
+     * @param jsonMapper handle json
+     * @param xmlMapper  handle xml
      */
     public static void initGlobal(ObjectMapper jsonMapper, XmlMapper xmlMapper) {
         if (jsonMapper != null) {
@@ -49,6 +57,14 @@ public class JacksonHelper {
         return XmlWings;
     }
 
+    @NotNull
+    public static ObjectMapper wings(boolean json) {
+        return json ? JsonWings : XmlWings;
+    }
+
+    /**
+     * Auto read text to object, if text asXml, read as xml, otherwise as json
+     */
     @SneakyThrows
     @Contract("!null,_->!null")
     public static <T> T object(@Nullable String text, @NotNull Class<T> targetType) {
@@ -60,6 +76,9 @@ public class JacksonHelper {
         }
     }
 
+    /**
+     * Auto read text to object, if text asXml, read as xml, otherwise as json
+     */
     @SneakyThrows
     @Contract("!null,_->!null")
     public static <T> T object(@Nullable String text, @NotNull JavaType targetType) {
@@ -71,6 +90,9 @@ public class JacksonHelper {
         }
     }
 
+    /**
+     * Auto read text to object, if text asXml, read as xml, otherwise as json
+     */
     @SneakyThrows
     @Contract("!null,_->!null")
     public static <T> T object(@Nullable String text, @NotNull TypeReference<T> targetType) {
@@ -83,7 +105,21 @@ public class JacksonHelper {
     }
 
     /**
-     * str是否具有xml特征，即，收尾的字符是否为尖角括号
+     * Auto read text to object, if text asXml, read as xml, otherwise as json
+     */
+    @SneakyThrows
+    @Contract("!null->!null")
+    public static JsonNode object(@Nullable String text) {
+        if (asXml(text)) {
+            return XmlWings.readTree(text);
+        }
+        else {
+            return JsonWings.readTree(text);
+        }
+    }
+
+    /**
+     * whether `str` has xml characteristics, i.e. the first and last characters are angle brackets or not
      */
     public static boolean asXml(@Nullable String str) {
         if (str == null) return false;
@@ -118,7 +154,8 @@ public class JacksonHelper {
     }
 
     /**
-     * 采用wings约定序列化(json)，尽可能以字符串输出
+     * Serialization (json) using the wings convention,
+     * output as string wherever possible to ensure data precision
      */
     @SneakyThrows
     @Contract("!null->!null")
@@ -127,7 +164,8 @@ public class JacksonHelper {
     }
 
     /**
-     * 采用wings约定序列化(json或xml)，尽可能以字符串输出
+     * Serialization (json or xml) using the wings convention,
+     * output as string wherever possible to ensure data precision
      */
     @SneakyThrows
     @Contract("!null,_->!null")
@@ -139,5 +177,36 @@ public class JacksonHelper {
         else {
             return XmlWings.writeValueAsString(obj);
         }
+    }
+
+    @Contract("_,_,!null->!null")
+    public static String getString(JsonNode node, String field, String defaults) {
+        if (node == null) return defaults;
+        final JsonNode jn = node.get(field);
+        return jn != null ? jn.asText(defaults) : defaults;
+    }
+
+    public static boolean getBoolean(JsonNode node, String field, boolean defaults) {
+        if (node == null) return defaults;
+        final JsonNode jn = node.get(field);
+        return jn != null ? jn.asBoolean(defaults) : defaults;
+    }
+
+    public static int getInt(JsonNode node, String field, int defaults) {
+        if (node == null) return defaults;
+        final JsonNode jn = node.get(field);
+        return jn != null ? jn.asInt(defaults) : defaults;
+    }
+
+    public static long getLong(JsonNode node, String field, long defaults) {
+        if (node == null) return defaults;
+        final JsonNode jn = node.get(field);
+        return jn != null ? jn.asLong(defaults) : defaults;
+    }
+
+    public static double getDouble(JsonNode node, String field, double defaults) {
+        if (node == null) return defaults;
+        final JsonNode jn = node.get(field);
+        return jn != null ? jn.asDouble(defaults) : defaults;
     }
 }

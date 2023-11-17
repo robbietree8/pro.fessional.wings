@@ -7,12 +7,13 @@ import pro.fessional.mirana.id.LightIdUtil;
 import pro.fessional.mirana.time.ThreadNow;
 import pro.fessional.wings.faceless.service.flakeid.FlakeIdService;
 import pro.fessional.wings.faceless.service.lightid.LightIdService;
+import pro.fessional.wings.silencer.datetime.Epochs;
 
 /**
  * <pre>
  * - 41-bit(ms second)
- * - ① 21-bit(sequence), max=2M/ms
- * - ② 10-bit(block) + 12-bit(sequence), max=4K/ms
+ * - (1) 21-bit(sequence), max=2M/ms
+ * - (2) 10-bit(block) + 12-bit(sequence), max=4K/ms
  * </pre>
  *
  * @author trydofor
@@ -27,7 +28,7 @@ public class FlakeIdLightIdImpl implements FlakeIdService {
     public static final int BIT_SEQ_BLK = 12;
     public static final int BIT_SEQ_WHL = 22;
 
-    public static final long TMS_EPO = 1640995200000L; // 2022-01-01 UTC
+    public static final long TMS_EPO = Epochs.FlakeId;
     public static final long MAX_TMS = (1L << BIT_TMS) - 1;
     public static final long MAX_BLK = (1L << BIT_BLK) - 1;
     public static final long MAX_SEQ_BLK = (1L << BIT_SEQ_BLK) - 1;

@@ -10,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,10 +19,12 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.util.StringUtils;
 import pro.fessional.mirana.data.R;
 import pro.fessional.mirana.i18n.I18nString;
+import pro.fessional.wings.silencer.runner.ApplicationStartedEventRunner;
 import pro.fessional.wings.slardar.autozone.AutoZoneType;
 import pro.fessional.wings.slardar.autozone.json.JacksonLocalDateDeserializer;
 import pro.fessional.wings.slardar.autozone.json.JacksonLocalDateTimeDeserializer;
@@ -39,12 +41,15 @@ import pro.fessional.wings.slardar.jackson.FormatNumberSerializer.Digital;
 import pro.fessional.wings.slardar.jackson.I18nResultPropertyFilter;
 import pro.fessional.wings.slardar.jackson.I18nStringSerializer;
 import pro.fessional.wings.slardar.jackson.JacksonHelper;
+import pro.fessional.wings.slardar.jackson.ResourceSerializer;
 import pro.fessional.wings.slardar.spring.prop.SlardarDatetimeProp;
 import pro.fessional.wings.slardar.spring.prop.SlardarEnabledProp;
 import pro.fessional.wings.slardar.spring.prop.SlardarJacksonProp;
 import pro.fessional.wings.slardar.spring.prop.SlardarNumberProp;
+import pro.fessional.wings.spring.consts.OrderedSlardarConst;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -57,7 +62,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author trydofor
- * @link https://docs.spring.io/spring-boot/docs/2.6.6/reference/htmlsingle/#howto-customize-the-jackson-objectmapper
+ * @link <a href="https://docs.spring.io/spring-boot/docs/3.0.3/reference/htmlsingle/#howto.spring-mvc.customize-jackson-objectmapper">Customize the Jackson ObjectMapper</a>
  * @see InstantDeserializer#ZONED_DATE_TIME
  * @since 2019-06-26
  */
@@ -66,6 +71,7 @@ import java.util.stream.Collectors;
 @ConditionalOnProperty(name = SlardarEnabledProp.Key$jackson, havingValue = "true")
 @RequiredArgsConstructor
 @AutoConfigureAfter(SlardarJacksonConfiguration.class)
+@AutoConfigureOrder(OrderedSlardarConst.JacksonWebConfiguration)
 public class SlardarJacksonWebConfiguration {
 
     private static final Log log = LogFactory.getLog(SlardarJacksonWebConfiguration.class);
@@ -76,10 +82,10 @@ public class SlardarJacksonWebConfiguration {
     private final MessageSource messageSource;
 
     /**
-     * The context’s Jackson2ObjectMapperBuilder can be customized by one or more
+     * The context's Jackson2ObjectMapperBuilder can be customized by one or more
      * Jackson2ObjectMapperBuilderCustomizer beans. Such customizer beans can be ordered
-     * (Boot’s own customizer has an order of 0), letting additional
-     * customization be applied both before and after Boot’s customization.
+     * (Boot's own customizer has an order of 0), letting additional
+     * customization be applied both before and after Boot's customization.
      * <p>
      * If you provide any @Beans of type MappingJackson2HttpMessageConverter,
      * they replace the default value in the MVC configuration. Also,
@@ -162,6 +168,12 @@ public class SlardarJacksonWebConfiguration {
     }
 
     @Bean
+    public Jackson2ObjectMapperBuilderCustomizer customizerObjectMapperResource() {
+        log.info("SlardarWebmvc spring-bean customizerObjectMapperResource");
+        return builder -> builder.serializerByType(Resource.class, new ResourceSerializer());
+    }
+
+    @Bean
     @ConditionalOnProperty(name = SlardarEnabledProp.Key$number, havingValue = "true")
     public Jackson2ObjectMapperBuilderCustomizer customizerObjectMapperNumber() {
         log.info("SlardarWebmvc spring-bean customizerObjectMapperNumber");
@@ -192,8 +204,9 @@ public class SlardarJacksonWebConfiguration {
             final SlardarNumberProp.Nf decimal = slardarNumberProp.getDecimal();
             if (decimal.isEnable()) {
                 final DecimalFormat df = decimal.getWellFormat();
-                log.info("SlardarWebmvc conf Jackson2ObjectMapperBuilderCustomizer BigDecimal serializer");
+                log.info("SlardarWebmvc conf Jackson2ObjectMapperBuilderCustomizer BigDecimal/BigInteger serializer");
                 builder.serializerByType(BigDecimal.class, new FormatNumberSerializer(BigDecimal.class, df, decimal.getDigital()));
+                builder.serializerByType(BigInteger.class, new FormatNumberSerializer(BigInteger.class, df, decimal.getDigital()));
             }
         };
     }
@@ -235,14 +248,14 @@ public class SlardarJacksonWebConfiguration {
     }
 
     @Bean
-    public CommandLineRunner runnerJacksonHelper(Jackson2ObjectMapperBuilder builder) {
+    public ApplicationStartedEventRunner runnerJacksonHelper(Jackson2ObjectMapperBuilder builder) {
         log.info("SlardarWebmvc spring-runs runnerJacksonHelper");
-        return args -> {
+        return new ApplicationStartedEventRunner(OrderedSlardarConst.RunnerJacksonHelper, ignored -> {
             log.info("SlardarWebmvc spring-conf JacksonHelper.initGlobal");
             JacksonHelper.initGlobal(
                     builder.createXmlMapper(false).build(),
                     builder.createXmlMapper(true).build()
             );
-        };
+        });
     }
 }

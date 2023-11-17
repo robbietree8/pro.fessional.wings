@@ -11,7 +11,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import pro.fessional.mirana.best.StateAssert;
+import pro.fessional.mirana.best.AssertState;
 import pro.fessional.mirana.data.Null;
 import pro.fessional.mirana.time.ThreadNow;
 import pro.fessional.wings.slardar.security.PasssaltEncoder;
@@ -26,7 +26,8 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * 一次性凭证登录，使用后立即失效，不论验证通过与否。
+ * A one-time credential login that expires immediately after use,
+ * regardless of whether authentication passes or fails.
  *
  * @author trydofor
  * @see WarlockNonceSendEvent
@@ -65,8 +66,7 @@ public class NonceUserDetailsCombo extends DefaultUserDetailsCombo {
             return useDetail;
         }
 
-        if (useDetail instanceof DefaultWingsUserDetails) {
-            DefaultWingsUserDetails details = (DefaultWingsUserDetails) useDetail;
+        if (useDetail instanceof DefaultWingsUserDetails details) {
             PasswordHelper helper = new PasswordHelper(passwordEncoder, passsaltEncoder);
             details.setPassword(helper.hash(event.getNonce(), details.getPasssalt()));
         }
@@ -88,7 +88,7 @@ public class NonceUserDetailsCombo extends DefaultUserDetailsCombo {
 
     private Cache getCache() {
         final Cache cache = cacheManager.getCache(cacheName);
-        StateAssert.notNull(cache, "can not find cache={}", cacheName);
+        AssertState.notNull(cache, "can not find cache={}", cacheName);
         return cache;
     }
 }

@@ -1,5 +1,6 @@
 package pro.fessional.wings.slardar.servlet.stream;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -9,7 +10,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.util.StringUtils;
 import pro.fessional.mirana.cast.TypedCastUtil;
 
-import javax.servlet.http.HttpSession;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -17,8 +17,10 @@ import java.util.List;
 import java.util.function.Predicate;
 
 /**
- * Prefix - 使用特征字符，比如jvmId等。
- * Body - 需要开启流复用或缓存功能。
+ * <rpe>
+ * Prefix - feature token, such as jvmId.
+ * Body - Must enable reuse Stream or caching.
+ * </rpe>
  *
  * @author trydofor
  * @since 2022-06-07
@@ -64,7 +66,7 @@ public abstract class AbstractRequestResponseLogging implements RequestResponseL
     protected String createRequestMessage(@NotNull Condition cnf, @NotNull ReuseStreamRequestWrapper request) {
         StringBuilder msg = new StringBuilder();
         msg.append(beforeRequestPrefix);
-        msg.append(request.getRequestId()).append('#');
+        msg.append(request.getRequestSeq()).append('#');
         msg.append(request.getMethod()).append(' ');
         msg.append(request.getRequestURI());
 
@@ -135,7 +137,7 @@ public abstract class AbstractRequestResponseLogging implements RequestResponseL
     protected String createResponseMessage(@NotNull Condition cnf, @NotNull ReuseStreamRequestWrapper request, @NotNull ReuseStreamResponseWrapper response) {
         StringBuilder msg = new StringBuilder();
         msg.append(afterResponsePrefix);
-        msg.append(request.getRequestId()).append('#');
+        msg.append(request.getRequestSeq()).append('#');
         msg.append(response.getStatus()).append(' ');
         msg.append(response.getContentType());
 

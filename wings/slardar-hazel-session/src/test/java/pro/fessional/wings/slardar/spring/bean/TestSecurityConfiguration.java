@@ -4,21 +4,23 @@ import lombok.Setter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
 import pro.fessional.wings.slardar.security.handler.TestLoginHandler;
 
 
 /**
- * WingsSessionTest 使用
+ * Used by WingsSessionTest
  *
  * @author trydofor
  * @since 2019-12-01
  */
 @Configuration(proxyBeanMethods = false)
-public class TestSecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class TestSecurityConfiguration {
 
     private final static Log log = LogFactory.getLog(TestSecurityConfiguration.class);
 
@@ -27,20 +29,6 @@ public class TestSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Setter(onMethod_ = {@Autowired})
     private SessionRegistry sessionRegistry;
-
-/*
-    @Setter(onMethod_ = {@Autowired})
-    private WingsUserDetailsService wingsUserDetailsService;
-
-
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.apply(SecurityConfigHelper.auth())
-            .userDetailsService(wingsUserDetailsService)
-        .and()
-        ;
-    }
-*/
 
     /**
      * The URL paths provided by the framework are
@@ -58,15 +46,15 @@ public class TestSecurityConfiguration extends WebSecurityConfigurerAdapter {
      * so be sure to include a request matcher that picks out
      * only non-API resources in the WebSecurityConfigurer above.
      */
-    @Override
-    public void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, MvcRequestMatcher.Builder mvcMatcher) throws Exception {
         log.info("config HttpSecurity");
-        http.authorizeRequests(conf -> conf
-                    .antMatchers("/authed/*").authenticated()
+        http.authorizeHttpRequests(conf -> conf
+                    .requestMatchers(mvcMatcher.pattern("/authed/*")).authenticated()
             )
             .formLogin(conf -> conf
-                    .loginPage("/user/login.json") // 无权限时返回的页面，
-                    .loginProcessingUrl("/user/login-proc.json") // filter处理，不需要controller
+                    .loginPage("/user/login.json") // 401 page
+                    .loginProcessingUrl("/user/login-proc.json") // handle by filter, no controller
                     .usernameParameter("username")
                     .passwordParameter("password")
                     .successHandler(testLoginHandler.loginSuccess)
@@ -89,6 +77,6 @@ public class TestSecurityConfiguration extends WebSecurityConfigurerAdapter {
 //            )
             .requestCache().disable()
             .csrf().disable();
-
+        return http.build();
     }
 }

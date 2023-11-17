@@ -1,7 +1,7 @@
 package pro.fessional.wings.slardar.domainx;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 
 /**
  * @author trydofor
@@ -45,7 +45,7 @@ public class DomainRequestWrapper extends HttpServletRequestWrapper {
     @Override
     public String getServletPath() {
         String url = super.getServletPath();
-        if (newRequestUri != null && url.length() > 0) {
+        if (newRequestUri != null && !url.isEmpty()) {
             url = url.replace(oldRequestUri, newRequestUri);
         }
         return url;

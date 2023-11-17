@@ -1,16 +1,16 @@
 package pro.fessional.wings.slardar.webmvc;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import pro.fessional.mirana.time.StopWatch.Watch;
 import pro.fessional.wings.silencer.watch.Watches;
-import pro.fessional.wings.slardar.constants.SlardarOrderConst;
 import pro.fessional.wings.slardar.constants.SlardarServletConst;
+import pro.fessional.wings.spring.consts.OrderedSlardarConst;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.function.BiConsumer;
 
 /**
@@ -21,19 +21,19 @@ import java.util.function.BiConsumer;
 public class SlowResponseInterceptor implements AutoRegisterInterceptor {
 
     /**
-     * slow阈值的毫秒数，-1表示关闭此功能
+     * The slow threshold in ms, `-1` means disable
      */
     @Getter @Setter
     private long thresholdMillis = -1;
 
     /**
-     * 取代日志，自行处理耗时与SQL
+     * Instead of logging, handle time-consuming and SQL yourself
      */
     @Getter @Setter
     private BiConsumer<Long, HttpServletRequest> costAndReqConsumer = (c, r) -> log.warn("SLOW-RES cost={}ms, uri={}", c, r.getRequestURI());
 
     @Getter @Setter
-    private int order = SlardarOrderConst.OrderSlowResponseInterceptor;
+    private int order = OrderedSlardarConst.MvcSlowResponseInterceptor;
 
     @Override
     public boolean preHandle(@NotNull HttpServletRequest request,
@@ -41,7 +41,7 @@ public class SlowResponseInterceptor implements AutoRegisterInterceptor {
                              @NotNull Object handler) {
         if (thresholdMillis < 0) return true;
 
-        final Watch watch = Watches.acquire().start(request.getRequestURI());
+        final Watch watch = Watches.acquire(request.getRequestURI());
         request.setAttribute(SlardarServletConst.AttrStopWatch, watch);
 
         return true;

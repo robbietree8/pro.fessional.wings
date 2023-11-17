@@ -1,8 +1,8 @@
 #!/bin/bash
 THIS_VERSION=2021-12-21
 
-# 相对于 wings-example
-JAVA_ROOT="winx-devops/src/test/java"
+# relative to wings-example
+JAVA_ROOT="winx-devops/src/*/java"
 CLAZ_ROOT="winx-devops/target/test-classes"
 JAVA_FILE="com/moilioncircle/wings/devops/init/*.java"
 CLASS_RUN="com.moilioncircle.wings.devops.init.WingsInitProjectSwing"

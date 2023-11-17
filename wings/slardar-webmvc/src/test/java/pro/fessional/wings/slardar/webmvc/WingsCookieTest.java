@@ -1,6 +1,7 @@
 package pro.fessional.wings.slardar.webmvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
@@ -16,12 +17,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import pro.fessional.mirana.bits.Aes;
-import pro.fessional.mirana.bits.Aes256;
 import pro.fessional.mirana.bits.Base64;
+import pro.fessional.wings.silencer.encrypt.Aes256Provider;
 import pro.fessional.wings.slardar.controller.TestCookieController.Ins;
-import pro.fessional.wings.slardar.spring.prop.SlardarCookieProp;
 
-import javax.servlet.http.Cookie;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -72,9 +71,6 @@ public class WingsCookieTest {
     private MockMvc mockMvc;
 
     @Setter(onMethod_ = {@Autowired})
-    private SlardarCookieProp prop;
-
-    @Setter(onMethod_ = {@Autowired})
     private ObjectMapper objectMapper;
 
     @Setter(onMethod_ = {@Value("http://localhost:${local.server.port}")})
@@ -90,9 +86,9 @@ public class WingsCookieTest {
 
     @Test
     public void test2Cookie() throws Exception {
-        // 必须用 client，mock不执行
+        // Must use client, do NOT mock
         httpClient("/test/cookie-forward.json");
-        // mock mvc 并不真正执行 mapping方法
+        // mock mvc do NOT really execute the mapping method
 //        mockMvcCookie("/test/cookie-forward.json");
     }
 
@@ -104,7 +100,7 @@ public class WingsCookieTest {
         ins.setAes("aes 128");
         ins.setOth("other");
 
-        Aes aes256 = Aes256.of(prop.getAesKey());
+        Aes aes256 = Aes256Provider.cookie();
 
         mockMvc.perform(
                 post(url)
@@ -140,7 +136,7 @@ public class WingsCookieTest {
         ins.setAes("aes 128");
         ins.setOth("other");
 
-        Aes256 aes256 = Aes256.of(prop.getAesKey());
+        Aes aes256 = Aes256Provider.cookie();
 
         String cookieValue = PREFIX + "ck1=" + ins.getCk1() + "; " + PREFIX + CK2OTH + "=" + ins.getCk2();
 

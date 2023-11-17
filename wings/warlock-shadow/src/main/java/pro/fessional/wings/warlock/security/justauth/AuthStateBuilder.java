@@ -2,6 +2,7 @@ package pro.fessional.wings.warlock.security.justauth;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,6 @@ import pro.fessional.wings.slardar.fastjson.FastJsonHelper;
 import pro.fessional.wings.slardar.security.WingsAuthHelper;
 import pro.fessional.wings.slardar.servlet.request.RequestHelper;
 
-import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,7 +24,7 @@ import java.util.Map;
 
 
 /**
- * 用于构造和解析有意义的state
+ * Construct and parse meaningful state
  *
  * @author trydofor
  * @since 2021-07-11
@@ -63,7 +63,7 @@ public class AuthStateBuilder {
 
         buildParaMap(request, paraMap);
 
-        // 167823d90c46cd70e3961b3f070a871c 32 非性能优先
+        // 167823d90c46cd70e3961b3f070a871c 32 non-performance first
         String uuid = RandCode.numlet(RAND_LEN);
         if (paraMap.isEmpty()) {
             return uuid;
@@ -78,6 +78,7 @@ public class AuthStateBuilder {
     }
 
     protected void buildParaMap(HttpServletRequest request, Map<String, String[]> paraMap) {
+        // for impl
     }
 
     @SuppressWarnings({"unchecked"})

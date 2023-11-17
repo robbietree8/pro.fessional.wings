@@ -21,7 +21,7 @@ public class Watches {
     private static final ThreadLocal<StopWatch> StopWatches = new TransmittableThreadLocal<>();
 
     /**
-     * 以try-close方式使用acquire-release
+     * acquire and release with try-close style
      */
     @NotNull
     public static StopWatch acquire() {
@@ -33,8 +33,13 @@ public class Watches {
         return watch;
     }
 
+    @NotNull
+    public static StopWatch.Watch acquire(String name) {
+        return acquire().start(name);
+    }
+
     /**
-     * 获取当前线程的StopWatch，建议通过Watch.owner获取
+     * Get the StopWatch at the current thread.
      */
     @Nullable
     public static StopWatch current() {
@@ -42,8 +47,17 @@ public class Watches {
     }
 
     /**
-     * 释放当前计时，并返回全部计时是否都已结束。
-     * 若全部计时结束时，是否清空记录(clean)，是否写入日志(token != null)。
+     * Get the StopWatch at the current thread.
+     */
+    @Nullable
+    public static StopWatch.Watch current(String name) {
+        final StopWatch watch = StopWatches.get();
+        return watch == null ? null : watch.start(name);
+    }
+
+    /**
+     * Release the current timer and returns whether all timers have finished.
+     * When all timings are finished, clear the log if clean, write to log if token != null.
      */
     public static boolean release(boolean clean, String token) {
         StopWatch watch = StopWatches.get();
@@ -60,7 +74,7 @@ public class Watches {
     }
 
     /**
-     * 使用Warn级别日志输出计时记录
+     * output info to the log with token at Warn level
      */
     public static void logging(String token, StopWatch watch) {
         log.warn("Watching {} {}", token, watch);

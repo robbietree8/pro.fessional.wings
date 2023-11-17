@@ -21,20 +21,18 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 class AccessDeny302Test {
 
-    @Setter(onMethod_ = {@Value("${local.server.port}")})
-    private int port;
+    @Setter(onMethod_ = {@Value("http://localhost:${local.server.port}")})
+    private String host;
 
     @Test
     public void test302() {
         RestTemplate tmpl = new RestTemplate();
-        final String host = "http://localhost:" + port;
-
         RequestEntity<?> entity = RequestEntity
                 .post(host + "/user/authed-user.json")
                 .accept(MediaType.TEXT_HTML)
                 .build();
         final ResponseEntity<String> res = tmpl.exchange(entity, String.class);
 
-        Assertions.assertEquals(302, res.getStatusCodeValue());
+        Assertions.assertEquals(302, res.getStatusCode().value());
     }
 }

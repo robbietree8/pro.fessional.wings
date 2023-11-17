@@ -4,10 +4,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import pro.fessional.wings.slardar.servlet.filter.WingsOverloadFilter;
 
 /**
+ * Overload protection filter, how to handle fast requests and slow responses. disable by
+ * default, not recommended as it requires more detailed config to avoid false positives.
+ *
  * @author trydofor
  * @since 2021-02-14
  */
 @ConfigurationProperties(SlardarOverloadProp.Key)
+@Deprecated
 public class SlardarOverloadProp extends WingsOverloadFilter.Config {
     public static final String Key = "wings.slardar.overload";
 

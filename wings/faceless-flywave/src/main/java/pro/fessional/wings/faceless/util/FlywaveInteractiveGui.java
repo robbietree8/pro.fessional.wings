@@ -65,9 +65,9 @@ public class FlywaveInteractiveGui {
                 frame.add(scrollPang);
                 frame.setSize(1200, 800);
 
-                // 居中
+                // center
                 frame.setLocationRelativeTo(null);
-                // 焦点
+                // focus
                 frame.setState(Frame.NORMAL);
                 frame.toFront();
                 frame.requestFocus();
@@ -106,10 +106,10 @@ public class FlywaveInteractiveGui {
                     parts.put(line.substring(off, matcher.start()), at1);
                     Color color;
                     String key = matcher.group(1);
-                    if (key.equalsIgnoreCase("ERROR")) {
+                    if ("ERROR".equalsIgnoreCase(key)) {
                         color = Color.PINK;
                     }
-                    else if (key.equalsIgnoreCase("WARN")) {
+                    else if ("WARN".equalsIgnoreCase(key)) {
                         color = Color.ORANGE;
                     }
                     else {
@@ -144,18 +144,21 @@ public class FlywaveInteractiveGui {
         if (hooked.isEmpty()) {
             hooked.add(fun);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                int res = showConfirmDialog(null, "程序退出了，要看的赶紧看!"
-                                                  + "\n重点关注ERROR内容，logger中更全\n"
-                                                  + "\n[yes] 直接退出 \n[no] 控制台<回车>退出",
+                int res = showConfirmDialog(null, """
+                                The program exit, Please check ASAP!
+                                Focus on ERROR, more in the logger.
+
+                                [yes] Exit
+                                [no] show console, and press ENTER to exit""",
                         "😺😸😹😻😼😽🙀😿😾😺",
                         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
                 if (res != 0) {
                     try {
                         for (BiConsumer<String, String> bc : hooked) {
-                            bc.accept("WARN", "主程序已退出，在控制台(console)按<回车>退出");
+                            bc.accept("WARN", "The program exit, press ENTER to exit.");
                         }
-                        System.out.println("主程序已退出，为保留日志窗口，卡 in.read() 呢！");
-                        System.out.println("要在下面按<回车>才能退出，下面↓，下面↓");
+                        System.out.println("The program exit, waiting for in.read() to keep the log window");
+                        System.out.println("press ENTER to exit");
                         //noinspection ResultOfMethodCallIgnored
                         System.in.read();
                     }

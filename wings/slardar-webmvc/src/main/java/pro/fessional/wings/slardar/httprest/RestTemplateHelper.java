@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.InputStream;
 
 /**
- * 你搜到的大部分 post file的资料，都不标准，或不对。
+ * Do NOT use CSDN or Baidu to search for technical knowledge.
  *
  * @author trydofor
  * @since 2020-06-02
@@ -118,7 +118,7 @@ public class RestTemplateHelper {
     }
 
     /**
-     * @link https://medium.com/red6-es/uploading-a-file-with-a-filename-with-spring-resttemplate-8ec5e7dc52ca
+     * @link <a href="https://medium.com/red6-es/uploading-a-file-with-a-filename-with-spring-resttemplate-8ec5e7dc52ca">RestTemplate Upload File</a>
      */
     @NotNull
     public static MultiValueMap<String, Object> addFile(HttpEntity<MultiValueMap<String, Object>> entity, String key, Resource res, String fileName) {

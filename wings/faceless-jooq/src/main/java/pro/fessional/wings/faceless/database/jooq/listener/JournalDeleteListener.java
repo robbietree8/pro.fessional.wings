@@ -5,10 +5,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.jooq.DSLContext;
 import org.jooq.Delete;
 import org.jooq.ExecuteContext;
+import org.jooq.ExecuteListener;
 import org.jooq.Param;
 import org.jooq.Query;
 import org.jooq.conf.ParamType;
-import org.jooq.impl.DefaultExecuteListener;
 import pro.fessional.wings.faceless.database.jooq.helper.JournalJooqHelper;
 
 import java.util.LinkedHashMap;
@@ -17,16 +17,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 仅支持单表执行，不支持batch处理
- * <p>
- * delete from `tst_中文也分表` where (`id` = ? and `commit_id` = ?)
+ * <pre>
+ * Only supports single table execution, does not support batch processing
+ *
+ * delete from `tst_sharding` where (`id` = ? and `commit_id` = ?)
  * commit_id = :commit_id and `id` = ?
+ * </pre>
  *
  * @author trydofor
  * @since 2021-01-14
  */
 @Slf4j
-public class JournalDeleteListener extends DefaultExecuteListener {
+public class JournalDeleteListener implements ExecuteListener {
 
     @Override
     public void renderEnd(ExecuteContext ctx) {
@@ -47,7 +49,7 @@ public class JournalDeleteListener extends DefaultExecuteListener {
         if (!params.isEmpty()) {
             for (Param<?> value : params.values()) {
                 ParamType type = value.getParamType();
-                // 只处理indexed的
+                // only handle indexed
                 if (!(type == ParamType.INDEXED || type == ParamType.FORCE_INDEXED)) {
                     return;
                 }
@@ -64,7 +66,7 @@ public class JournalDeleteListener extends DefaultExecuteListener {
                 ctx.dsl().execute(updateSql);
             }
             else {
-                // 保证顺序
+                // make sure the order
                 Object[] pms = new Object[params.size()];
                 int i = 0;
                 for (Param<?> pm : params.values()) {
@@ -115,12 +117,12 @@ public class JournalDeleteListener extends DefaultExecuteListener {
         return null;
     }
 
-    // delete from `tst_中文也分表` where (`id` = ? and `commit_id` = ?)
+    // delete from `tst_sharding` where (`id` = ? and `commit_id` = ?)
     // commit_id = :commit_id and `id` = ?
     private final Pattern ptnCommitId = Pattern
-            .compile("\\band\\s+([`'\"]?commit_id[`'\"]?[\\s]*=[\\s]*([^()=\\s]+))" +
+            .compile("\\band\\s+([`'\"]?commit_id[`'\"]?\\s*=\\s*([^()=\\s]+))" +
                      "|" +
-                     "([`'\"]?commit_id[`'\"]?[\\s]*=[\\s]*([^()=\\s]+))\\s+and\\b"
+                     "([`'\"]?commit_id[`'\"]?\\s*=\\s*([^()=\\s]+))\\s+and\\b"
                     , Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
 
     private String buildUpdateSql(DSLContext dsl, String del, String table, Map<String, Param<?>> params) {
@@ -138,7 +140,7 @@ public class JournalDeleteListener extends DefaultExecuteListener {
         if (!params.isEmpty()) {
             String cidVal = matcher.group(off + 2).trim();
             Param<?> para;
-            if (cidVal.equals("?")) {
+            if ("?".equals(cidVal)) {
                 int cn = 1;
                 for (int i = 0; i < matcher.start(); i++) {
                     char c = del.charAt(i);

@@ -1,16 +1,18 @@
 package pro.fessional.wings.slardar.context;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import pro.fessional.wings.slardar.constants.SlardarOrderConst;
+import org.jetbrains.annotations.Nullable;
+import pro.fessional.mirana.best.DummyBlock;
 import pro.fessional.wings.slardar.context.TerminalContext.Builder;
 import pro.fessional.wings.slardar.context.TerminalContext.Context;
 import pro.fessional.wings.slardar.webmvc.AutoRegisterInterceptor;
+import pro.fessional.wings.spring.consts.OrderedSlardarConst;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,12 +24,13 @@ import static pro.fessional.wings.slardar.constants.SlardarServletConst.AttrTerm
  * @since 2019-11-16
  */
 @Slf4j
+@Getter
 public class TerminalInterceptor implements AutoRegisterInterceptor {
 
-    @Getter
     private final List<TerminalBuilder> terminalBuilders = new ArrayList<>();
+    private final List<TerminalLogger> terminalLoggers = new ArrayList<>();
 
-    @Setter @Getter
+    @Setter
     @NotNull
     private List<String> excludePatterns = Collections.emptyList();
 
@@ -37,64 +40,102 @@ public class TerminalInterceptor implements AutoRegisterInterceptor {
         }
     }
 
-    @NotNull
-    public Builder buildTerminal(@NotNull HttpServletRequest request) {
-        final Builder builder = new Builder();
-        for (TerminalBuilder build : terminalBuilders) {
-            build.build(builder, request);
+    public void addTerminalLogger(TerminalLogger logger) {
+        if (logger != null) {
+            terminalLoggers.add(logger);
         }
-        return builder;
     }
 
     /**
-     * 登录terminal，必须和logoutTerminal 以 try-finally形式出现。
+     * Login terminal, which must appear as a try-finally with logoutTerminal.
      */
-    public Context loginTerminal(@NotNull HttpServletRequest request, @NotNull Builder builder) {
+    @NotNull
+    public Context loginTerminal(@NotNull HttpServletRequest request) {
         try {
+            final Builder builder = new Builder();
+            for (TerminalBuilder build : terminalBuilders) {
+                build.build(builder, request);
+            }
+
+            if (request.getAttribute(AttrTerminalLogin) == Boolean.TRUE) {
+                log.warn("should NOT loginTerminal more than once");
+            }
+            else {
+                request.setAttribute(AttrTerminalLogin, Boolean.TRUE);
+            }
+
             final Context ctx = builder.build();
             TerminalContext.login(ctx);
-            request.setAttribute(AttrTerminalLogin, Boolean.TRUE);
             return ctx;
         }
-        catch (Exception e) {
+        catch (RuntimeException e) {
             log.error("should NOT be here", e);
             TerminalContext.logout();
+            throw e;
+        }
+    }
+
+    /**
+     * Logout terminal, and return the previous context if logined successfully
+     */
+    @Nullable
+    public Context logoutTerminal(@NotNull HttpServletRequest request) {
+        if (request.getAttribute(AttrTerminalLogin) == Boolean.TRUE) {
+            Context ctx = TerminalContext.logout();
+            request.removeAttribute(AttrTerminalLogin);
+            return ctx;
+        }
+        else {
             return null;
         }
     }
 
-    /**
-     * 登出，返回之前是否成功login
-     */
-    public boolean logoutTerminal(@NotNull HttpServletRequest request) {
-        if (request.getAttribute(AttrTerminalLogin) == Boolean.TRUE) {
-            TerminalContext.logout();
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    @Getter @Setter
-    private int order = SlardarOrderConst.OrderTerminalInterceptor;
+    @Setter
+    private int order = OrderedSlardarConst.MvcTerminalInterceptor;
 
     @Override
     public boolean preHandle(@NotNull HttpServletRequest request,
                              @NotNull HttpServletResponse response,
                              @NotNull Object handler) {
-        final Builder builder = buildTerminal(request);
-        return loginTerminal(request, builder) != null;
+        final Context ctx = loginTerminal(request);
+        for (TerminalLogger log : terminalLoggers) {
+            try {
+                log.log(true, ctx, request, response, null);
+            }
+            catch (Exception e) {
+                DummyBlock.ignore(e);
+            }
+        }
+        return true;
     }
 
     @Override
     public void afterCompletion(@NotNull HttpServletRequest request,
                                 @NotNull HttpServletResponse response,
                                 @NotNull Object handler, Exception ex) {
-        logoutTerminal(request);
+        final Context ctx = logoutTerminal(request);
+        for (TerminalLogger log : terminalLoggers) {
+            try {
+                log.log(false, ctx, request, response, ex);
+            }
+            catch (Exception e) {
+                DummyBlock.ignore(e);
+            }
+        }
     }
 
     public interface TerminalBuilder {
         void build(@NotNull Builder builder, @NotNull HttpServletRequest request);
+    }
+
+    public interface TerminalLogger {
+        /**
+         * @param login    login or logout
+         * @param context  the context
+         * @param request  the request
+         * @param response the response
+         * @param ex       the exception if throw in afterCompletion
+         */
+        void log(boolean login, @Nullable Context context, @NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @Nullable Exception ex);
     }
 }

@@ -18,6 +18,7 @@ import pro.fessional.wings.warlock.database.autogen.tables.daos.WinConfRuntimeDa
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @author trydofor
@@ -38,6 +39,8 @@ public class WatchingService {
     @Watching
     public void normalFetch() {
         winConfRuntimeDao.fetchByKey("");
+        fetchLatch.countDown();
+        fetchLatch = new CountDownLatch(1);
     }
 
     @Watching
@@ -45,19 +48,28 @@ public class WatchingService {
         final WinConfRuntimeTable t = winConfRuntimeDao.getTable();
         winConfRuntimeDao.ctx()
                          .selectFrom(t)
-                         .where("aaa=bbb")
+                         .where("ignore_this_error=true")
                          .fetch();
+    }
+
+    private CountDownLatch asyncLatch = new CountDownLatch(1);
+    private CountDownLatch fetchLatch = new CountDownLatch(1);
+
+    public void asyncAwait() throws InterruptedException {
+        asyncLatch.await();
     }
 
     @Async
     public void asyncWatch() {
         final StopWatch stopWatch = Watches.acquire();
-        try (Watch watch = stopWatch.start("AsyncWatch.BadSelect")) {
+        try (Watch watch = stopWatch.start("AsyncWatch.countDown")) {
             WatchOwner = watch.owner;
             AsyncWatch = new ArrayList<>(WatchOwner.getWatches());
             log.warn("AsyncWatch={}", WatchOwner);
-            try (Watch w0 = stopWatch.start("AsyncWatch.BadSelect.sleep")) {
-                Thread.sleep(500);
+            asyncLatch.countDown();
+            asyncLatch = new CountDownLatch(1);
+            try (Watch ignored = stopWatch.start("AsyncWatch.fetchLatch")) {
+                fetchLatch.await(); // wait for sql executing, cross timeline
             }
             catch (InterruptedException e) {
                 DummyBlock.ignore(e);

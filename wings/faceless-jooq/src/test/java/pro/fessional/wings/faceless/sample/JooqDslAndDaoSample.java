@@ -14,10 +14,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import pro.fessional.wings.faceless.database.autogen.tables.Tst中文也分表Table;
-import pro.fessional.wings.faceless.database.autogen.tables.daos.Tst中文也分表Dao;
-import pro.fessional.wings.faceless.database.autogen.tables.pojos.Tst中文也分表;
-import pro.fessional.wings.faceless.database.autogen.tables.records.Tst中文也分表Record;
+import pro.fessional.wings.faceless.database.autogen.tables.TstShardingTable;
+import pro.fessional.wings.faceless.database.autogen.tables.daos.TstShardingDao;
+import pro.fessional.wings.faceless.database.autogen.tables.pojos.TstSharding;
+import pro.fessional.wings.faceless.database.autogen.tables.records.TstShardingRecord;
 import pro.fessional.wings.faceless.database.jooq.helper.JournalDiffHelper;
 import pro.fessional.wings.faceless.database.jooq.helper.JournalJooqHelper;
 import pro.fessional.wings.faceless.flywave.SchemaRevisionManager;
@@ -44,9 +44,8 @@ import static pro.fessional.wings.faceless.service.journal.JournalService.Journa
  */
 
 
-@SpringBootTest(properties = {"debug = true", "logging.level.org.jooq.tools.LoggerListener=DEBUG"})
+@SpringBootTest
 @TestMethodOrder(MethodOrderer.MethodName.class)
-//@Disabled("手动执行，以有JooqShardingTest覆盖测试 ")
 @Slf4j
 public class JooqDslAndDaoSample {
 
@@ -54,7 +53,7 @@ public class JooqDslAndDaoSample {
     private SchemaRevisionManager schemaRevisionManager;
 
     @Setter(onMethod_ = {@Autowired})
-    private Tst中文也分表Dao dao;
+    private TstShardingDao dao;
 
     @Test
     public void test0Init() {
@@ -66,47 +65,47 @@ public class JooqDslAndDaoSample {
     @Test
     public void test1Dao() {
 
-        testcaseNotice("使用alias");
+        testcaseNotice("Use alias");
         val a = dao.getAlias();
         val c = a.Id.gt(1L).and(a.CommitId.lt(200L));
 
-        testcaseNotice("select count(*) from `tst_中文也分表` as `y8` where (`y8`.`id` = ? and `y8`.`commit_id` = ?)");
+        testcaseNotice("select count(*) from `tst_sharding` as `y8` where (`y8`.`id` = ? and `y8`.`commit_id` = ?)");
         val i = dao.count(a, c);
-        testcaseNotice("select * from `tst_中文也分表` as `y8` where (`y8`.`id` = ? and `y8`.`commit_id` = ?) limit ?");
+        testcaseNotice("select * from `tst_sharding` as `y8` where (`y8`.`id` = ? and `y8`.`commit_id` = ?) limit ?");
         val ft1 = dao.fetch(a, 0, 2, c, a.Id.desc());
         log.info("============count {}, ft2'size={}", i, ft1.size());
-        testcaseNotice("select id, commit_id  from `tst_中文也分表` as `y8` where (`y8`.`id` = ? and `y8`.`commit_id` = ?) limit ?");
+        testcaseNotice("select id, commit_id  from `tst_sharding` as `y8` where (`y8`.`id` = ? and `y8`.`commit_id` = ?) limit ?");
         val ft2 = dao.fetch(0, 2, (t, w) -> w
                 .where(t.Id.gt(1L).and(t.CommitId.lt(200L)))
-                .order(t.Id, t.CommitId, t.Id.desc()));
+                .query(t.Id, t.CommitId, t.Id.desc()));
         log.info("============count {}, ft2'size={}", i, ft2.size());
 
         // table
-        testcaseNotice("使用table");
+        testcaseNotice("Use table");
         val t = dao.getTable();
         val setter = new HashMap<>();
         setter.put(t.LoginInfo, "info");
         setter.put(t.CommitId, t.Id.add(1L));
-        testcaseNotice("update `tst_中文也分表` set `commit_id` = (`id` + ?), `login_info` = ? where `id` = ?");
+        testcaseNotice("update `tst_sharding` set `commit_id` = (`id` + ?), `login_info` = ? where `id` = ?");
         val u1 = dao.update(t, setter, t.Id.eq(2L));
         log.info("============update {}", u1);
 
-        val po = new Tst中文也分表();
+        val po = new TstSharding();
         po.setCommitId(2L);
         po.setLoginInfo("info");
-        testcaseNotice("update `tst_中文也分表` set `commit_id` = ?, `login_info` = ? where `id` = ?");
+        testcaseNotice("update `tst_sharding` set `commit_id` = ?, `login_info` = ? where `id` = ?");
         val u2 = dao.update(t, po, t.Id.eq(2L));
         log.info("============update {}", u2);
     }
 
     @Test
     public void test2Dsl() {
-        testcaseNotice("通过dao.ctx()获得dsl能力");
+        testcaseNotice("Get Dsl by dao.ctx()");
         Condition nullCond = null;
         Field<Long> nullField = null;
 //        val nullOrder: OrderField<Long>? = null
         val emptyOrder = new OrderField[]{};
-        val t = Tst中文也分表Table.Tst中文也分表;
+        val t = TstShardingTable.TstSharding;
         DSLContext dsl = dao.ctx();
         val sql = dsl.select(t.Id, nullField) // null safe
                      .from(t)
@@ -118,18 +117,18 @@ public class JooqDslAndDaoSample {
         log.info(sql);
 
         testcaseNotice("plain sql delete");
-        int rc = dsl.execute("DELETE FROM tst_中文也分表 WHERE id < ?", 1L);
+        int rc = dsl.execute("DELETE FROM tst_sharding WHERE id < ?", 1L);
     }
 
     @Test
     public void test3Journal() {
-        testcaseNotice("日志功能");
+        testcaseNotice("Journal Feature");
 
         val now = LocalDateTime.now();
         val journal = new Journal(1L, now, "", "", "", "");
 
         val s1 = new HashMap<>();
-        val t = Tst中文也分表Table.Tst中文也分表;
+        val t = TstShardingTable.TstSharding;
         JournalJooqHelper.create(journal, t, s1);
         log.info("map1={}", s1);
 
@@ -141,7 +140,7 @@ public class JooqDslAndDaoSample {
         log.info("map3={}", s3);
 
         val s4 = new HashMap<>();
-        val ob = new Tst中文也分表();
+        val ob = new TstSharding();
         val start1 = System.currentTimeMillis();
         for (int i = 0; i < 10000; i++) {
             JournalJooqHelper.create(journal, t, s4);
@@ -156,27 +155,27 @@ public class JooqDslAndDaoSample {
 
     @Test
     public void test4DeleteDt() {
-        testcaseNotice("逻辑删除");
+        testcaseNotice("Logic delete");
         val c1 = dao.count();
         log.info("count1={}", c1);
-        val c2 = dao.count(it -> it.onlyDiedData);
+        val c2 = dao.count(TstShardingTable::getOnlyDied);
         log.info("count2={}", c2);
     }
 
     @Test
     public void test4Shadow() {
-        testcaseNotice("影子表");
-        Tst中文也分表Table upd = dao.newTable("", "_postfix");
+        testcaseNotice("Shadow table");
+        TstShardingTable upd = dao.newTable("", "_postfix");
         val c1 = dao.count(upd, null);
         log.info("count1={}", c1);
     }
 
     @Test
     public void test5DiffDao() {
-        testcaseNotice("差分数据Dao");
-        Tst中文也分表 po = new Tst中文也分表();
+        testcaseNotice("Diff Dao");
+        TstSharding po = new TstSharding();
         final long id = 20221024L;
-        final Tst中文也分表Table t = dao.getTable();
+        final TstShardingTable t = dao.getTable();
         final LocalDateTime now = LocalDateTime.of(2022, 10, 24, 12, 34, 56);
 
         po.setId(id);
@@ -220,7 +219,7 @@ public class JooqDslAndDaoSample {
 
         final JournalDiff d3 = dao.diffDelete(t, t.Id.ge(id));
         log.warn("diffDelete3={}", d3);
-        JournalDiffHelper.tidy(d3, t.Language); // 默认withDefault
+        JournalDiffHelper.tidy(d3, t.Language); // withDefault
         Assertions.assertNotNull(d3);
         Assertions.assertEquals(2, d3.getCount());
         Assertions.assertEquals(t.getName(), d3.getTable());
@@ -234,10 +233,10 @@ public class JooqDslAndDaoSample {
 
     @Test
     public void test5DiffDsl() {
-        testcaseNotice("差分数据Dsl");
-        Tst中文也分表 po = new Tst中文也分表();
+        testcaseNotice("Diff Dsl");
+        TstSharding po = new TstSharding();
         final long id = 20221024L;
-        final Tst中文也分表Table t = dao.getTable();
+        final TstShardingTable t = dao.getTable();
         final DSLContext dsl = dao.ctx();
         final LocalDateTime now = LocalDateTime.of(2022, 10, 24, 12, 34, 56);
 
@@ -250,10 +249,8 @@ public class JooqDslAndDaoSample {
         po.setOtherInfo("other by diff insert");
         po.setLanguage(ZH_CN);
 
-        final SelectConditionStep<Tst中文也分表Record> query = dsl.selectFrom(t).where(t.Id.eq(id));
-        final JournalDiff d0 = JournalDiffHelper.diffInsert(t, query, () -> {
-            dao.insert(po);
-        });
+        final SelectConditionStep<TstShardingRecord> query = dsl.selectFrom(t).where(t.Id.eq(id));
+        final JournalDiff d0 = JournalDiffHelper.diffInsert(t, query, () -> dao.insert(po));
         log.warn("diffInsert0={}", d0);
         Assertions.assertNotNull(d0);
         Assertions.assertEquals(1, d0.getCount());
@@ -263,14 +260,13 @@ public class JooqDslAndDaoSample {
         Assertions.assertTrue(d0.getValue1().isEmpty());
         Assertions.assertEquals(Arrays.asList(id, now, DATE_TIME, DATE_TIME, id, "login by diff insert", "other by diff insert", ZH_CN), d0.getValue2());
 
-        final JournalDiff d2 = JournalDiffHelper.diffUpdate(t, query, () -> {
-            dsl.update(t)
-               .set(t.CommitId, t.CommitId.add(1))
-               .set(t.LoginInfo, "login by diff update")
-               .set(t.ModifyDt, now)
-               .where(t.Id.eq(id))
-               .execute();
-        });
+        final JournalDiff d2 = JournalDiffHelper.diffUpdate(t, query, () ->
+                dsl.update(t)
+                   .set(t.CommitId, t.CommitId.add(1))
+                   .set(t.LoginInfo, "login by diff update")
+                   .set(t.ModifyDt, now)
+                   .where(t.Id.eq(id))
+                   .execute());
         log.warn("diffUpdate2={}", d2);
         Assertions.assertNotNull(d2);
         Assertions.assertEquals(1, d2.getCount());
@@ -284,11 +280,9 @@ public class JooqDslAndDaoSample {
         Assertions.assertEquals(List.of("login by diff update"), d2.getValue2());
 
 
-        final JournalDiff d3 = JournalDiffHelper.diffDelete(t, query, () -> {
-            dsl.delete(t).where(t.Id.ge(id));
-        });
+        final JournalDiff d3 = JournalDiffHelper.diffDelete(t, query, () -> dsl.delete(t).where(t.Id.ge(id)));
         log.warn("diffDelete3={}", d3);
-        JournalDiffHelper.tidy(d3, t.Language); // 默认withDefault
+        JournalDiffHelper.tidy(d3, t.Language); // withDefault
         Assertions.assertNotNull(d3);
         Assertions.assertEquals(1, d3.getCount());
         Assertions.assertEquals(t.getName(), d3.getTable());

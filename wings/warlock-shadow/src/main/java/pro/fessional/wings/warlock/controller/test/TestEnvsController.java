@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import pro.fessional.mirana.data.R;
+import pro.fessional.wings.silencer.modulate.RunMode;
+import pro.fessional.wings.silencer.modulate.RuntimeMode;
 import pro.fessional.wings.slardar.context.Now;
-import pro.fessional.wings.warlock.service.conf.mode.RunMode;
-import pro.fessional.wings.warlock.service.conf.mode.RuntimeMode;
 import pro.fessional.wings.warlock.spring.prop.WarlockEnabledProp;
 import pro.fessional.wings.warlock.spring.prop.WarlockUrlmapProp;
 
@@ -21,22 +21,21 @@ import pro.fessional.wings.warlock.spring.prop.WarlockUrlmapProp;
 @ConditionalOnProperty(name = WarlockEnabledProp.Key$controllerTest, havingValue = "true")
 public class TestEnvsController {
 
-    @Operation(summary = "获取 RunMode", description =
-            "# Usage \n"
-            + "无参数Get取得 Product, Test, Develop, Local\n"
-            + "")
+    @Operation(summary = "Get RunMode", description = """
+            # Usage
+            Return Product, Test, Develop, Local
+            """)
     @RequestMapping(value = "${" + WarlockUrlmapProp.Key$testRunMode + "}", method = {RequestMethod.POST, RequestMethod.GET})
     @ResponseBody
     public R<String> testRunMode() {
         final RunMode rm = RuntimeMode.getRunMode();
-        final String rt = rm == null ? null : rm.name();
-        return R.okData(rt);
+        return R.okData(rm.name());
     }
 
-    @Operation(summary = "获取系统 Timestamp", description =
-            "# Usage \n"
-            + "无参数Get取得 1970毫秒数的Timestamp\n"
-            + "")
+    @Operation(summary = "Get system Timestamp", description = """
+            # Usage
+            Get the Timestamp from 1970 in mills
+            """)
     @RequestMapping(value = "${" + WarlockUrlmapProp.Key$testSystemMills + "}", method = {RequestMethod.POST, RequestMethod.GET})
     @ResponseBody
     public R<Long> testSystemMills() {
@@ -44,10 +43,10 @@ public class TestEnvsController {
         return R.okData(ms);
     }
 
-    @Operation(summary = "获取线程 Timestamp", description =
-            "# Usage \n"
-            + "无参数Get取得 1970毫秒数的Timestamp\n"
-            + "")
+    @Operation(summary = "Get thread Timestamp", description = """
+            # Usage
+            Get the Timestamp from 1970 in mills
+            """)
     @RequestMapping(value = "${" + WarlockUrlmapProp.Key$testThreadMills + "}", method = {RequestMethod.POST, RequestMethod.GET})
     @ResponseBody
     public R<Long> testThreadMills() {

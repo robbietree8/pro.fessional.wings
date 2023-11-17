@@ -1,12 +1,13 @@
 package pro.fessional.wings.slardar.context;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import org.cache2k.Cache;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import pro.fessional.mirana.best.TypedReg;
 import pro.fessional.mirana.best.TypedReg.Key;
+import pro.fessional.wings.slardar.cache.cache2k.WingsCache2k;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -14,12 +15,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 应用程序级Atl=12H无界缓存，需手动注册和移除。
+ * App level, ttl=12H, unbounded cache.
+ * Need manually register and remove.
  *
  * @author trydofor
  * @since 2021-03-30
@@ -28,31 +29,30 @@ public class GlobalAttributeHolder {
 
 
     //
-    private static final Cache<Key<?, ?>, Object> CACHE = Caffeine.newBuilder()
-                                                                  .expireAfterAccess(12, TimeUnit.HOURS)
-                                                                  .build();
+    @SuppressWarnings("all")
+    private static final Cache<Key, Object> CACHE = WingsCache2k.builder(GlobalAttributeHolder.class, "CACHE", -1, Duration.ofHours(12), null, Key.class, Object.class).build();
     private static final ConcurrentHashMap<TypedReg<?, ?>, Function<?, ?>> LOADER = new ConcurrentHashMap<>();
 
     /**
-     * 注册一个属性及其加载器
+     * Registering a typed key-value and its loader
      *
-     * @param reg    类型
-     * @param loader 加载器，返回null时不被缓存，每次都会调用，因此建议返回`空值`
-     * @param <K>    key类型
-     * @param <V>    value类型
+     * @param reg    Type to register
+     * @param loader returns `null` is not cached and is called every time, so it is recommended to return `nonnull`.
+     * @param <K>    key type
+     * @param <V>    value type
      */
     public static <K, V> void regLoader(@NotNull TypedReg<K, V> reg, @NotNull Function<Key<K, V>, V> loader) {
         LOADER.put(reg, loader);
     }
 
     /**
-     * 放入一个type的值，对loader的补充，如生效前
+     * Put an attribute value to the typed key.
      *
-     * @param reg   类型
-     * @param key   唯一key，如userId
-     * @param value 值
-     * @param <K>   key类型
-     * @param <V>   value类型
+     * @param reg   Type to register
+     * @param key   unique key, e.g. userId
+     * @param value value
+     * @param <K>   key type
+     * @param <V>   value type
      */
     public static <K, V> void putAttr(@NotNull TypedReg<K, V> reg, @NotNull K key, @NotNull V value) {
         Key<K, V> k = new Key<>(reg, key);
@@ -60,12 +60,12 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 放入一个type的值，对loader的补充，如生效前
+     * Put all attribute value from map to the typed key.
      *
-     * @param reg 类型
-     * @param map 唯一key，如userId
-     * @param <K> key类型
-     * @param <V> value类型
+     * @param reg Type to register
+     * @param map map of attribute
+     * @param <K> key type
+     * @param <V> value type
      */
     public static <K, V> void putAttr(@NotNull TypedReg<K, V> reg, @NotNull Map<K, V> map) {
         Map<Key<K, V>, V> kvs = new HashMap<>(map.size());
@@ -76,14 +76,13 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 根据一个type获取属性，尝试Loader加载，如果不存在，null时抛NPE异常
+     * Try to get an attribute by typed key, load it if not found, return `elze` if the result is null.
      *
-     * @param reg  类型
-     * @param key  唯一key，如userId
-     * @param elze 唯一key，null时返回elze
-     * @param <K>  key类型
-     * @param <V>  value类型
-     * @return 返回值
+     * @param reg  Type to register
+     * @param key  unique key, e.g. userId
+     * @param elze return `elze` if result is null
+     * @param <K>  key type
+     * @param <V>  value type
      */
     @Contract("_,_,!null->!null")
     public static <K, V> V tryAttr(@NotNull TypedReg<K, V> reg, @NotNull K key, V elze) {
@@ -92,13 +91,12 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 根据一个type获取属性，尝试Loader加载，如果不存在，null时抛NPE异常
+     * Try to get an attribute by typed key, load it if not found, throw NPE if the result is null.
      *
-     * @param reg 类型
-     * @param key 唯一key，如userId
-     * @param <K> key类型
-     * @param <V> value类型
-     * @return 返回值
+     * @param reg Type to register
+     * @param key unique key, e.g. userId
+     * @param <K> key type
+     * @param <V> value type
      */
     @NotNull
     public static <K, V> V tryAttr(@NotNull TypedReg<K, V> reg, @NotNull K key) {
@@ -106,26 +104,25 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 根据一个type获取属性，尝试Loader加载，如果不存在，选择null或异常
+     * Try to get an attribute by typed key, load it if not found, throw NPE if notnull and the result is null.
      *
-     * @param reg     类型
-     * @param key     唯一key，如userId
-     * @param notnull 是否 notnull
-     * @param <K>     key类型
-     * @param <V>     value类型
-     * @return 返回值
+     * @param reg     Type to register
+     * @param key     unique key, e.g. userId
+     * @param notnull whether notnull
+     * @param <K>     key type
+     * @param <V>     value type
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Contract("_,_,true ->!null")
     public static <K, V> V tryAttr(@NotNull TypedReg<K, V> reg, @NotNull K key, boolean notnull) {
         Key<K, V> k = new Key<>(reg, key);
-        final Function<Key<?, ?>, ?> ld = (Function<Key<?, ?>, ?>) LOADER.get(reg);
+        final Function<Key, ?> ld = (Function<Key, ?>) LOADER.get(reg);
         final Object rst;
         if (ld == null) {
-            rst = CACHE.getIfPresent(k);
+            rst = CACHE.get(k);
         }
         else {
-            rst = CACHE.get(k, ld);
+            rst = CACHE.computeIfAbsent(k, ld);
         }
 
         if (rst == null && notnull) {
@@ -135,38 +132,37 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 获取当前缓存的type属性，不会调用Loader，如果不存在，返回null
+     * Get an attribute by typed key, and NOT load if not found.
      *
-     * @param reg 类型
-     * @param key 唯一key，如userId
-     * @param <K> key类型
-     * @param <V> value类型
-     * @return 返回值
+     * @param reg Type to register
+     * @param key unique key, e.g. userId
+     * @param <K> key type
+     * @param <V> value type
      */
     @SuppressWarnings("unchecked")
     public static <K, V> V getAttr(@NotNull TypedReg<K, V> reg, @NotNull K key) {
         Key<K, V> k = new Key<>(reg, key);
-        final Object rst = CACHE.getIfPresent(k);
+        final Object rst = CACHE.get(k);
         return (V) rst;
     }
 
     /**
-     * 去掉一个缓存
+     * remove an attribute by key
      *
-     * @param reg 类型
-     * @param key 唯一key，如userId
-     * @param <K> key类型
+     * @param reg Type to register
+     * @param key unique key, e.g. userId
+     * @param <K> key type
      */
     public static <K> void ridAttr(TypedReg<K, ?> reg, K key) {
-        CACHE.invalidate(new Key<>(reg, key));
+        CACHE.remove(new Key<>(reg, key));
     }
 
     /**
-     * 去掉一个缓存
+     * remove all attribute by keys
      *
-     * @param reg 类型
-     * @param key 唯一key，如userId
-     * @param <K> key类型
+     * @param reg Type to register
+     * @param key unique key, e.g. userId
+     * @param <K> key type
      */
     @SafeVarargs
     public static <K> void ridAttr(TypedReg<K, ?> reg, K... key) {
@@ -175,11 +171,11 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 去掉一个缓存
+     * remove all attribute by keys
      *
-     * @param <K> key类型
-     * @param reg 类型
-     * @param key 唯一key，如userId
+     * @param reg Type to register
+     * @param key unique key, e.g. userId
+     * @param <K> key type
      */
     public static <K> void ridAttrs(TypedReg<K, ?> reg, Collection<? extends K> key) {
         if (key == null || key.isEmpty()) return;
@@ -187,13 +183,13 @@ public class GlobalAttributeHolder {
         for (K k : key) {
             ks.add(new Key<>(reg, k));
         }
-        CACHE.invalidate(ks);
+        CACHE.removeAll(ks);
     }
 
     /**
-     * 移除所有缓存
+     * remove all attribute of type
      *
-     * @param reg 类型
+     * @param reg Type to register
      */
     public static void ridAttrAll(TypedReg<?, ?>... reg) {
         if (reg == null || reg.length == 0) return;
@@ -201,33 +197,34 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 移除所有缓存
+     * remove all attribute of type
      *
-     * @param reg 类型
+     * @param reg Type to register
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static void ridAttrAll(Collection<? extends TypedReg<?, ?>> reg) {
         if (reg == null || reg.isEmpty()) return;
         final Set<TypedReg<?, ?>> rgs;
         if (reg instanceof Set) {
-            //noinspection unchecked
             rgs = (Set<TypedReg<?, ?>>) reg;
         }
         else {
             rgs = new HashSet<>(reg);
         }
 
-        final Set<?> keys = CACHE.asMap()
-                                 .keySet()
-                                 .stream()
-                                 .filter(it -> rgs.contains(it.reg))
-                                 .collect(Collectors.toSet());
-        CACHE.invalidateAll(keys);
+        final Set<Key> keys = CACHE
+                .asMap()
+                .keySet()
+                .stream()
+                .filter(it -> rgs.contains(it.reg))
+                .collect(Collectors.toSet());
+        CACHE.removeAll(keys);
     }
 
     /**
-     * 移除属性及其已存在缓存
+     * remove all attribute of type and its loader
      *
-     * @param reg 注册类型
+     * @param reg Type to register
      */
     public static void ridLoader(TypedReg<?, ?>... reg) {
         if (reg == null || reg.length == 0) return;
@@ -235,9 +232,9 @@ public class GlobalAttributeHolder {
     }
 
     /**
-     * 移除属性及其已存在缓存
+     * remove all attribute of type and its loader
      *
-     * @param reg 注册类型
+     * @param reg Type to register
      */
     public static void ridLoader(Collection<? extends TypedReg<?, ?>> reg) {
         if (reg == null || reg.isEmpty()) return;

@@ -6,6 +6,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pro.fessional.mirana.best.DummyBlock;
 import pro.fessional.mirana.best.TypedKey;
+import pro.fessional.mirana.time.ThreadNow;
+import pro.fessional.wings.slardar.errcode.AuthnErrorEnum;
 import pro.fessional.wings.slardar.security.DefaultUserId;
 
 import java.time.ZoneId;
@@ -21,51 +23,47 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 在service层使用，TransmittableThreadLocal有自动的线程继承性。
- * 由 TerminalInterceptor.preHandle 设值，afterCompletion清理。
- * 注：无 WeakReference Leak，因static及Interceptor清理。
+ * Used at the service level, TransmittableThreadLocal has automatic thread inheritance.
+ * Set by TerminalInterceptor.preHandle, cleaned up by afterCompletion.
+ * Note: No WeakReference Leak due to static and Interceptor cleanup.
  *
  * @author trydofor
+ * @see <a href="https://github.com/alibaba/transmittable-thread-local/blob/master/docs/developer-guide-en.md#-frameworkmiddleware-integration-to-ttl-transmittance">Framework/Middleware integration to TTL transmittance</a>
  * @since 2019-11-25
  */
 public class TerminalContext {
 
-    public static final Context Null = new Context(DefaultUserId.Null, null, null, null, null, null);
+    public static final Context Null = new Context(
+            DefaultUserId.Null,
+            Locale.getDefault(),
+            TimeZone.getDefault(),
+            Collections.emptyMap(),
+            pro.fessional.mirana.data.Null.Enm,
+            pro.fessional.mirana.data.Null.Str,
+            Collections.emptySet());
 
-    /** no leak, for static and Interceptor clean */
+    /**
+     * no leak, for static and Interceptor clean
+     */
     private static final TransmittableThreadLocal<Context> ContextLocal = new TransmittableThreadLocal<>();
     private static final ConcurrentHashMap<String, Listener> ContextListeners = new ConcurrentHashMap<>();
 
     private static volatile boolean Active;
+
     @NotNull
-    private static volatile TimeZone DefaultTimeZone = TimeZone.getDefault();
+    private static volatile TimeZone DefaultTimeZone = ThreadNow.sysTimeZone();
     @NotNull
     private static volatile Locale DefaultLocale = Locale.getDefault();
 
     /**
-     * 是否处于激活状态，可以正确使用
-     */
-    public static boolean isActive() {
-        return Active;
-    }
-
-    /**
-     * 初始激活状态，标记功能是否能够正常使用。
-     */
-
-    public static void initActive(boolean b) {
-        Active = b;
-    }
-
-    /**
-     * 设置默认时区
+     * init default zoneId
      */
     public static void initTimeZone(@NotNull TimeZone zoneId) {
         DefaultTimeZone = zoneId;
     }
 
     /**
-     * 设置默认语言
+     * init default locale
      */
     public static void initLocale(@NotNull Locale locale) {
         DefaultLocale = locale;
@@ -73,7 +71,7 @@ public class TerminalContext {
 
 
     /**
-     * 默认时区
+     * get default zoneId
      */
     @NotNull
     public static ZoneId defaultZoneId() {
@@ -81,7 +79,7 @@ public class TerminalContext {
     }
 
     /**
-     * 默认时区
+     * get default timezone
      */
     @NotNull
     public static TimeZone defaultTimeZone() {
@@ -90,84 +88,135 @@ public class TerminalContext {
 
 
     /**
-     * 默认语言
+     * get default locale
      */
     @NotNull
     public static Locale defaultLocale() {
         return DefaultLocale;
     }
 
+    /**
+     * get current use or system zoneId
+     *
+     * @return zoneId
+     */
+    @NotNull
+    public static ZoneId currentZoneId() {
+        return currentTimeZone().toZoneId();
+    }
 
     /**
-     * 设置的login和logout的THreadLocal监听，context为null时，为logout，否则为login
+     * get current use or system timezone
+     */
+    @NotNull
+    public static TimeZone currentTimeZone() {
+        final Context context = get(false);
+        return context.getTimeZone();
+    }
+
+    /**
+     * get current use or system locale
      *
-     * @param name     名字
-     * @param listener 监听器
-     * @return null或旧值
+     * @return locale
+     */
+    @NotNull
+    public static Locale currentLocale() {
+        final Context context = get(false);
+        return context.getLocale();
+    }
+
+    /**
+     * set login and logout listener. context is null for logout, else for login.
+     *
+     * @param name     name of listener
+     * @param listener the listener
+     * @return null or old value
      */
     public static Listener registerListener(String name, Listener listener) {
         return ContextListeners.put(name, listener);
     }
 
     /**
-     * 移除监听器
+     * remove login and logout listener by name
      *
-     * @param name 名字
-     * @return null或旧值
+     * @param name name of listener
+     * @return null or old value
      */
     public static Listener removeListener(String name) {
         return ContextListeners.remove(name);
     }
 
     /**
-     * 仅登录的上下文，若未登录则抛异常
+     * only login user, throw TerminalException if not login
+     *
+     * @throws TerminalContextException if not login
      */
     @NotNull
-    public static Context get() {
+    public static Context get() throws TerminalContextException {
         return get(true);
     }
 
     /**
-     * 未登录用户以Guest返回，还是抛异常，
+     * unlogined user as Guest or throw TerminalException
      *
-     * @param onlyLogin 是否仅登录用户，否则包括Guest
-     * @return 上下文
+     * @param onlyLogin only login user or guest
+     * @throws TerminalContextException if onlyLogin and not login
      */
     @NotNull
-    public static Context get(boolean onlyLogin) {
-        Context ctx = TerminalContext.ContextLocal.get();
-        if (ctx == null) ctx = Null;
-        if (onlyLogin && ctx.isGuest()) {
-            throw new IllegalStateException("must login user");
+    public static Context get(boolean onlyLogin) throws TerminalContextException {
+        Context ctx = null;
+        if (Active) {
+            ctx = ContextLocal.get();
+        }
+        if (ctx == null) {
+            ctx = Null;
+        }
+        if (onlyLogin && ctx.isNull()) {
+            throw new TerminalContextException(AuthnErrorEnum.Unauthorized, "find null context, must be user or guest");
         }
         return ctx;
     }
 
     /**
-     * login，当ctx为null时，执行为logout
-     *
-     * @param ctx 上下文
+     * login if ctx is not null/Null, else logout
      */
-    public static void login(Context ctx) {
-        if (ctx == null || ctx == Null) {
-            final Context old = ContextLocal.get();
-            ContextLocal.remove();
-            fireContextChange(true, old);
+    public static void login(@Nullable Context ctx) {
+        if (ctx == null || ctx.isNull()) {
+            logout();
         }
         else {
+            Active = true;
             ContextLocal.set(ctx);
             fireContextChange(false, ctx);
         }
-        Active = true;
     }
 
-    public static void logout() {
-        login(Null);
+    /**
+     * logout the context and fireContextChange
+     */
+    @Nullable
+    public static Context logout() {
+        return logout(true);
     }
 
-    private static void fireContextChange(boolean del, Context ctx) {
-        if (ContextListeners.isEmpty()) return;
+    /**
+     * logout the context and whether to fireContextChange
+     *
+     * @param fire whether to fireContextChange
+     */
+    @Nullable
+    public static Context logout(boolean fire) {
+        final Context old = ContextLocal.get();
+        if (old != null) {
+            ContextLocal.remove();
+            if (fire) {
+                fireContextChange(true, old);
+            }
+        }
+        return old;
+    }
 
+    private static void fireContextChange(boolean del, @NotNull Context ctx) {
         for (Listener listener : ContextListeners.values()) {
             try {
                 listener.onChange(del, ctx);
@@ -180,13 +229,12 @@ public class TerminalContext {
 
     public interface Listener {
         /**
-         * 赋新值或删除旧值，新值为NotNull，旧值可能为Null
+         * set new value or delete old value, new value is NotNull, old value maybe Null
          *
-         * @param del 是否为删除，否则为赋值
-         * @param ctx del时为Nullable，否则为NotNull
+         * @param del whether to delete, else set value
+         * @param ctx new to set, or old to delete
          */
-        @Contract("false,!null->_")
-        void onChange(boolean del, Context ctx);
+        void onChange(boolean del, @NotNull Context ctx);
     }
 
     public static class Context {
@@ -195,16 +243,18 @@ public class TerminalContext {
         private final Locale locale;
         private final TimeZone timeZone;
         private final Enum<?> authType;
+        private final String username;
         private final Set<String> authPerm;
         private final Map<TypedKey<?>, Object> terminal;
 
         public Context(long userId, Locale locale, TimeZone timeZone, Map<TypedKey<?>,
-                Object> params, Enum<?> authType, Set<String> authPerm) {
+                Object> params, Enum<?> authType, String username, Set<String> authPerm) {
             this.userId = userId;
             this.locale = locale != null ? locale : DefaultLocale;
             this.timeZone = timeZone != null ? timeZone : DefaultTimeZone;
             this.terminal = params != null ? params : Collections.emptyMap();
             this.authType = authType != null ? authType : pro.fessional.mirana.data.Null.Enm;
+            this.username = username != null ? username : pro.fessional.mirana.data.Null.Str;
             this.authPerm = authPerm != null ? authPerm : Collections.emptySet();
         }
 
@@ -220,13 +270,6 @@ public class TerminalContext {
          */
         public boolean isGuest() {
             return userId == DefaultUserId.Guest;
-        }
-
-        /**
-         * userId >= DefaultUserId#Guest
-         */
-        public boolean asLogin() {
-            return userId >= DefaultUserId.Guest;
         }
 
         public long getUserId() {
@@ -254,6 +297,11 @@ public class TerminalContext {
         }
 
         @NotNull
+        public String getUsername() {
+            return username;
+        }
+
+        @NotNull
         public Set<String> getAuthPerm() {
             return authPerm;
         }
@@ -277,11 +325,35 @@ public class TerminalContext {
             return authPerm.containsAll(auths);
         }
 
+        /**
+         * key must be defined by TerminalAttribute or its subclasses
+         *
+         * @see TerminalAttribute
+         */
         @Nullable
         public <T> T getTerminal(@NotNull TypedKey<T> key) {
             return key.get(terminal);
         }
 
+        /**
+         * key must be defined by TerminalAttribute or its subclasses
+         *
+         * @see TerminalAttribute
+         */
+        @Contract("_,true->!null")
+        public <T> T getTerminal(@NotNull TypedKey<T> key, boolean notnull) {
+            final T t = key.get(terminal);
+            if (t == null && notnull) {
+                throw new NullPointerException("Terminal Key " + key + " returned null");
+            }
+            return t;
+        }
+
+        /**
+         * key must be defined by TerminalAttribute or its subclasses
+         *
+         * @see TerminalAttribute
+         */
         @Contract("_,!null->!null")
         public <T> T tryTerminal(@NotNull TypedKey<T> key, T elze) {
             return key.tryOr(terminal, elze);
@@ -290,8 +362,7 @@ public class TerminalContext {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof Context)) return false;
-            Context context = (Context) o;
+            if (!(o instanceof Context context)) return false;
             return userId == context.userId &&
                    Objects.equals(locale, context.locale) &&
                    Objects.equals(timeZone, context.timeZone) &&
@@ -309,24 +380,28 @@ public class TerminalContext {
                    "userId=" + userId +
                    ", locale=" + locale +
                    ", timeZone=" + timeZone +
-                   ", terminal=" + terminal +
+                   ", authType=" + authType +
+                   ", username='" + username + '\'' +
                    '}';
         }
     }
 
     public static class Builder {
-        private long userId;
+        private long userId = Null.userId;
         private Locale locale;
         private TimeZone timeZone;
         private Enum<?> authType;
+        private String username;
         private final Set<String> authPerm = new HashSet<>();
         private final Map<TypedKey<?>, Object> terminal = new HashMap<>();
 
+        @Contract("_->this")
         public Builder locale(Locale lcl) {
             locale = lcl;
             return this;
         }
 
+        @Contract("_->this")
         public Builder localeIfAbsent(Locale lcl) {
             if (locale == null) {
                 locale = lcl;
@@ -334,11 +409,13 @@ public class TerminalContext {
             return this;
         }
 
+        @Contract("_->this")
         public Builder timeZone(TimeZone tz) {
             timeZone = tz;
             return this;
         }
 
+        @Contract("_->this")
         public Builder timeZoneIfAbsent(TimeZone tz) {
             if (timeZone == null) {
                 timeZone = tz;
@@ -346,11 +423,13 @@ public class TerminalContext {
             return this;
         }
 
+        @Contract("_->this")
         public Builder timeZone(ZoneId tz) {
             timeZone = TimeZone.getTimeZone(tz);
             return this;
         }
 
+        @Contract("_->this")
         public Builder timeZoneIfAbsent(ZoneId tz) {
             if (timeZone == null) {
                 timeZone = TimeZone.getTimeZone(tz);
@@ -358,31 +437,59 @@ public class TerminalContext {
             return this;
         }
 
+        @Contract("_->this")
         public Builder authType(Enum<?> at) {
             authType = at;
             return this;
         }
 
+        @Contract("_->this")
+        public Builder authTypeIfAbsent(Enum<?> at) {
+            if (authType == null) {
+                authType = at;
+            }
+            return this;
+        }
+
+        @Contract("_->this")
+        public Builder username(String un) {
+            username = un;
+            return this;
+        }
+
+        @Contract("_->this")
+        public Builder usernameIfAbsent(String un) {
+            if (username == null) {
+                username = un;
+            }
+            return this;
+        }
+
+        @Contract("_->this")
         public Builder authPerm(String pm) {
             authPerm.add(pm);
             return this;
         }
 
+        @Contract("_->this")
         public Builder authPerm(Collection<String> pm) {
             authPerm.addAll(pm);
             return this;
         }
 
+        @Contract("_,_->this")
         public <V> Builder terminal(TypedKey<V> key, V value) {
             terminal.put(key, value);
             return this;
         }
 
+        @Contract("_,_->this")
         public <V> Builder terminalIfAbsent(TypedKey<V> key, V value) {
             terminal.putIfAbsent(key, value);
             return this;
         }
 
+        @Contract("_->this")
         public Builder terminal(Map<TypedKey<?>, Object> kvs) {
             if (kvs != null) {
                 terminal.putAll(kvs);
@@ -390,6 +497,7 @@ public class TerminalContext {
             return this;
         }
 
+        @Contract("_->this")
         public Builder terminalIfAbsent(Map<TypedKey<?>, Object> kvs) {
             if (kvs != null) {
                 for (Map.Entry<TypedKey<?>, Object> en : kvs.entrySet()) {
@@ -399,17 +507,37 @@ public class TerminalContext {
             return this;
         }
 
+        @Contract("_->this")
         public Builder user(long uid) {
             userId = uid;
             return this;
         }
 
+        @Contract("_->this")
+        public Builder userIfAbsent(Long uid) {
+            if (userId == Null.userId && uid != null) {
+                userId = uid;
+            }
+            return this;
+        }
+
+        @Contract("_->this")
+        public Builder userOrGuest(Long uid) {
+            userId = uid == null ? DefaultUserId.Guest : uid;
+            return this;
+        }
+
+        @Contract("->this")
         public Builder guest() {
             return user(DefaultUserId.Guest);
         }
 
+        @NotNull
         public Context build() {
-            return new Context(userId, locale, timeZone, terminal, authType, authPerm);
+            if (userId == Null.userId) {
+                throw new IllegalArgumentException("invalid userid");
+            }
+            return new Context(userId, locale, timeZone, terminal, authType, username, authPerm);
         }
     }
 }

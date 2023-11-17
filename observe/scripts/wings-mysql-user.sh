@@ -1,20 +1,21 @@
 #!/bin/bash
-THIS_VERSION=2022-02-14
+THIS_VERSION=2023-04-14
 
-cat << EOF
+cat <<EOF
 #################################################
 # Version $THIS_VERSION # test on Mac and Lin
-# 创建database以及和访问的用户
-- {user_pre}.raw SELECT, TEMPORARY TABLE
-- {user_pre}.app {raw} + INSERT, UPDATE, DELETE, EXECUTE
-- {user_pre}.dev ALL - Drop
-- {user_pre}.dba ALL + SELECT on mysql/sys
+# Create User and grant privileges to database
+- {user_pre}{name_pre}raw SELECT, TEMPORARY TABLE
+- {user_pre}{name_pre}app {raw} + INSERT, UPDATE, DELETE, EXECUTE
+- {user_pre}{name_pre}dev ALL - Drop
+- {user_pre}{name_pre}dba ALL + SELECT on mysql/sys
+- FLUSH PRIVILEGES;
 
-# Usage $0 {create|grant|passwd|help} userenv [option]
-- create/grant/passwd - 创建/授权/改密码
-- userenv - 环境脚本(bash语法)，wings-mysql-user.env
-- option - 存在时，使用'--defaults-extra-file'
-# option 详细参考client段
+# Usage $0 userenv {create|grant|passwd|help} [option]
+- userenv - Env script (bash syntax), wings-mysql-user.env
+- create/grant/passwd - create user/grant privileges/ change password
+- option - use '--defaults-extra-file' if exist
+# option details in client help
 - https://dev.mysql.com/doc/refman/8.0/en/option-files.html
 ./wings-mysql-user.sh wings-mysql-user.env wings-mysql-client.cnf
 #################################################
@@ -26,44 +27,45 @@ function passwd24() {
 
 #####
 execute=false
-command="$1"
-userenv="$2"
+name_pre=_
+userenv="$1"
+command="$2"
 option="$3"
 
-if [[ "$command" == "" || "$command" == "help" ]]; then
-echo -e '\033[37;42;1mNOTE: users env file\033[m'
-# https://dev.mysql.com/doc/refman/8.0/en/account-management-statements.html
-cat << 'EOF'
+if [[ "$command" == "" || "$command" == "help" || ! -f "$userenv" ]]; then
+  echo -e '\033[37;42;1mNOTE: users env file\033[m'
+  # https://dev.mysql.com/doc/refman/8.0/en/account-management-statements.html
+  cat <<'EOF'
 execute=false
-# 用户名前缀
+## prefix of username
 user_pre=devall
-# 授权db，空格分隔。其中`_`和`%`是通配符，可`\`转义
+## default name separator
+name_pre=_
+## the database to grant, separated by spaces. The `_` and `%` are wildcards and can be escaped with `\`.
 grant_db='%'
-# passwd 空为忽略
+## passwd, empty means ignore it
 pass_raw=$(passwd24)
 pass_app=$(passwd24)
 pass_dev=$(passwd24)
 pass_dba=$(passwd24)
-# host 默认，%
+## host, default `%`
 host_raw=%
 host_app=10.11.%
 host_dev=%
 host_dba=%
 EOF
-echo -e '\033[37;42;1mNOTE: user manage\033[m'
-cat << 'EOF'
+  echo -e '\033[37;42;1mNOTE: user manage\033[m'
+  cat <<'EOF'
 RENAME USER 'trydofor'@'%' TO 'trydofor'@'127.0.%';
 DROP USER IF EXISTS 'trydofor'@'%';
 EOF
-exit
+  exit
 fi
 
 declare more_dba
-if [[ -f "$userenv" ]]; then
-  echo "load users option from $userenv"
-  # shellcheck disable=SC1090
-  source "$userenv"
-fi
+echo "load users option from $userenv"
+# shellcheck disable=SC1090
+source "$userenv"
 
 declare user_pre
 if [[ "$user_pre" == "" ]]; then
@@ -101,52 +103,50 @@ if [[ "$execute" == "true" ]]; then
 fi
 
 echo -e '\033[37;42;1mNOTE: users and passwd\033[m'
-grep -v '^#' << EOF
-${user_raw}$user_pre.raw  $pass_raw
-${user_app}$user_pre.app  $pass_app
-${user_dev}$user_pre.dev  $pass_dev
-${user_dba}$user_pre.dba  $pass_dba
+grep -v '^#' <<EOF
+${user_raw}${user_pre}${name_pre}raw  $pass_raw
+${user_app}${user_pre}${name_pre}app  $pass_app
+${user_dev}${user_pre}${name_pre}dev  $pass_dev
+${user_dba}${user_pre}${name_pre}dba  $pass_dba
 EOF
 
 echo -e '\033[37;42;1mNOTE: sql script to execute\033[m'
 
 if [[ "$command" == "create" ]]; then
-grep -v '^#' << EOF | tee /dev/tty | $exec_cmd
+  grep -v '^#' <<EOF | tee /dev/tty | $exec_cmd
 -- create
-${user_raw}CREATE USER '$user_pre.raw'@'$host_raw' IDENTIFIED BY '$pass_raw';
-${user_app}CREATE USER '$user_pre.app'@'$host_app' IDENTIFIED BY '$pass_app';
-${user_dev}CREATE USER '$user_pre.dev'@'$host_dev' IDENTIFIED BY '$pass_dev';
-${user_dba}CREATE USER '$user_pre.dba'@'$host_dba' IDENTIFIED BY '$pass_dba';
+${user_raw}CREATE USER '${user_pre}${name_pre}raw'@'$host_raw' IDENTIFIED BY '$pass_raw';
+${user_app}CREATE USER '${user_pre}${name_pre}app'@'$host_app' IDENTIFIED BY '$pass_app';
+${user_dev}CREATE USER '${user_pre}${name_pre}dev'@'$host_dev' IDENTIFIED BY '$pass_dev';
+${user_dba}CREATE USER '${user_pre}${name_pre}dba'@'$host_dba' IDENTIFIED BY '$pass_dba';
 EOF
 fi
 
 if [[ "$command" == "grant" ]]; then
-for db_main in $grant_db; do
-grep -v '^#' << EOF | tee /dev/tty | $exec_cmd
+  for db_main in $grant_db; do
+    grep -v '^#' <<EOF | tee /dev/tty | $exec_cmd
 -- grant
-${user_raw}GRANT SELECT, CREATE TEMPORARY TABLES ON \`$db_main\`.* TO '$user_pre.raw'@'$host_raw';
-${user_app}GRANT SELECT, CREATE TEMPORARY TABLES, INSERT, UPDATE, DELETE, EXECUTE ON \`$db_main\`.* TO '$user_pre.app'@'$host_app';
-${user_dev}GRANT ALL ON \`$db_main\`.* TO '$user_pre.dev'@'$host_dev';
-${user_dev}REVOKE DROP ON \`$db_main\`.* FROM '$user_pre.dev'@'$host_dev';
-${user_dba}GRANT ALL ON \`$db_main\`.* TO '$user_pre.dba'@'$host_dba';
-${user_dba}GRANT RELOAD,SHOW VIEW,EXECUTE,FILE,PROCESS,REPLICATION CLIENT,REPLICATION SLAVE ON *.* TO '$user_pre.dba'@'$host_dba';
+${user_raw}GRANT SELECT, CREATE TEMPORARY TABLES ON \`$db_main\`.* TO '${user_pre}${name_pre}raw'@'$host_raw';
+${user_app}GRANT SELECT, CREATE TEMPORARY TABLES, INSERT, UPDATE, DELETE, EXECUTE ON \`$db_main\`.* TO '${user_pre}${name_pre}app'@'$host_app';
+${user_dev}GRANT ALL ON \`$db_main\`.* TO '${user_pre}${name_pre}dev'@'$host_dev';
+${user_dev}REVOKE DROP ON \`$db_main\`.* FROM '${user_pre}${name_pre}dev'@'$host_dev';
+${user_dba}GRANT ALL ON \`$db_main\`.* TO '${user_pre}${name_pre}dba'@'$host_dba';
+${user_dba}GRANT RELOAD,SHOW VIEW,EXECUTE,PROCESS,REPLICATION CLIENT,REPLICATION SLAVE ON *.* TO '${user_pre}${name_pre}dba'@'$host_dba';
 EOF
-for mb in $more_dba; do
-grep -v '^#' << EOF | tee /dev/tty | $exec_cmd
-${user_dba}GRANT SELECT ON \`$mb\`.* TO '$user_pre.dba'@'$host_dba';
+    for mb in $more_dba; do
+      grep -v '^#' <<EOF | tee /dev/tty | $exec_cmd
+${user_dba}GRANT SELECT ON \`$mb\`.* TO '${user_pre}${name_pre}dba'@'$host_dba';
 EOF
-done
-done
+    done
+  done
 fi
 
 if [[ "$command" == "passwd" ]]; then
-grep -v '^#' << EOF | tee /dev/tty | $exec_cmd
+  grep -v '^#' <<EOF | tee /dev/tty | $exec_cmd
 -- change passwd
-${user_raw}ALTER USER '$user_pre.raw'@'$host_raw' IDENTIFIED BY '$pass_raw';
-${user_app}ALTER USER '$user_pre.app'@'$host_app' IDENTIFIED BY '$pass_app';
-${user_dev}ALTER USER '$user_pre.dev'@'$host_dev' IDENTIFIED BY '$pass_dev';
-${user_dba}ALTER USER '$user_pre.dba'@'$host_dba' IDENTIFIED BY '$pass_dba';
+${user_raw}ALTER USER '${user_pre}${name_pre}raw'@'$host_raw' IDENTIFIED BY '$pass_raw';
+${user_app}ALTER USER '${user_pre}${name_pre}app'@'$host_app' IDENTIFIED BY '$pass_app';
+${user_dev}ALTER USER '${user_pre}${name_pre}dev'@'$host_dev' IDENTIFIED BY '$pass_dev';
+${user_dba}ALTER USER '${user_pre}${name_pre}dba'@'$host_dba' IDENTIFIED BY '$pass_dba';
 EOF
 fi
-
-

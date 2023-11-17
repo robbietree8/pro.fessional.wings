@@ -16,12 +16,11 @@ import static pro.fessional.wings.warlock.project.Warlock1SchemaManager.includeW
  * @author trydofor
  * @since 2021-02-22
  */
-@Disabled("手动初始化")
+@Disabled("Database Version")
 @SpringBootTest(properties = {
         "spring.datasource.url=" + Devops0ProjectConstant.JDBC_URL,
         "spring.datasource.username=" + Devops0ProjectConstant.JDBC_USER,
         "spring.datasource.password=" + Devops0ProjectConstant.JDBC_PASS,
-        "debug = true"
 })
 class Devops1SchemaManagerTest {
 

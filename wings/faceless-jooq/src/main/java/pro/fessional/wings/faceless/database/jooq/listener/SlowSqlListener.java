@@ -3,36 +3,37 @@ package pro.fessional.wings.faceless.database.jooq.listener;
 import lombok.Getter;
 import lombok.Setter;
 import org.jooq.ExecuteContext;
+import org.jooq.ExecuteListener;
 import org.jooq.Query;
-import org.jooq.impl.DefaultExecuteListener;
 import pro.fessional.mirana.time.StopWatch.Watch;
 import pro.fessional.wings.silencer.watch.Watches;
 
 import java.util.function.BiConsumer;
 
 /**
- * 慢查询日志
+ * Log the Slow Sql
  *
  * @author trydofor
  * @since 2021-01-14
  */
-
-public class SlowSqlListener extends DefaultExecuteListener {
+@Getter @Setter
+public class SlowSqlListener implements ExecuteListener {
 
     public enum ContextKey {
         EXECUTING_STOP_WATCH
     }
 
+
+    private String token = "SlowSqlListener";
+
     /**
-     * slow阈值的毫秒数，-1表示关闭此功能
+     * threshold of slow in mills, `-1` means disable
      */
-    @Getter @Setter
     private long thresholdMillis = -1;
 
     /**
-     * 取代日志，自行处理耗时与SQL
+     * Handle time-consuming and SQL instead of logger
      */
-    @Getter @Setter
     private BiConsumer<Long, String> costAndSqlConsumer = (c, s) -> Watches.log.warn("SLOW-SQL cost={}ms, sql={}", c, s);
 
     @Override
@@ -45,7 +46,7 @@ public class SlowSqlListener extends DefaultExecuteListener {
             name = name + query.getClass().getSimpleName();
         }
 
-        final Watch watch = Watches.acquire().start(name);
+        final Watch watch = Watches.acquire(name);
         ctx.data(ContextKey.EXECUTING_STOP_WATCH, watch);
     }
 
@@ -63,7 +64,7 @@ public class SlowSqlListener extends DefaultExecuteListener {
             }
         }
         finally {
-            Watches.release(true, slow ? "SlowSqlListener" : null);
+            Watches.release(true, slow ? token : null);
         }
     }
 }

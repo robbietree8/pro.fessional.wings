@@ -1,5 +1,6 @@
 package pro.fessional.wings.slardar.servlet.cookie.impl;
 
+import jakarta.servlet.http.Cookie;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -10,17 +11,16 @@ import pro.fessional.mirana.bits.Aes256;
 import pro.fessional.mirana.bits.Base64;
 import pro.fessional.wings.slardar.servlet.cookie.WingsCookieInterceptor;
 
-import javax.servlet.http.Cookie;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static pro.fessional.wings.silencer.spring.help.CommonPropHelper.invalidValue;
+import static pro.fessional.wings.silencer.spring.help.CommonPropHelper.notValue;
 
 /**
- * 设计目的为非运行时调整，故不提供写保护
+ * Designed for non-runtime tuning, so no write protection is provided.
  *
  * @author trydofor
  * @since 2021-10-08
@@ -65,20 +65,20 @@ public class WingsCookieInterceptorImpl implements WingsCookieInterceptor {
 
         boolean did = false;
         String name = cookie.getName();
-        // name 脱前缀
+        // handle prefix of name
         if (prefix != null && name.startsWith(prefix)) {
             name = name.substring(prefix.length());
             did = true;
         }
 
-        // name 脱别名
+        // handle alias of name
         final String n = aliasDec.get(name);
         if (n != null) {
             name = n;
             did = true;
         }
 
-        // value 解码
+        // decode value
         String value = cookie.getValue();
         if (codeAes.contains(name)) {
             value = aes.decode64(value);
@@ -111,7 +111,7 @@ public class WingsCookieInterceptorImpl implements WingsCookieInterceptor {
         boolean did = false;
         String name = cookie.getName();
 
-        // value 编码
+        // decode value
         String value = cookie.getValue();
         if (codeAes.contains(name)) {
             value = aes.encode64(value);
@@ -135,7 +135,7 @@ public class WingsCookieInterceptorImpl implements WingsCookieInterceptor {
             }
         }
 
-        // 处理属性
+        // handle attrs
         final Boolean ho = httpOnly.get(name);
         if (ho != null) {
             cookie.setHttpOnly(ho);
@@ -153,14 +153,14 @@ public class WingsCookieInterceptorImpl implements WingsCookieInterceptor {
             cookie.setPath(ph);
         }
 
-        // name 设别名
+        // handle alias of name
         final String n = aliasEnc.get(name);
         if (n != null) {
             name = n;
             did = true;
         }
 
-        // name 设前缀
+        // handle prefix of name
         if (prefix != null) {
             name = prefix + name;
             did = true;
@@ -179,15 +179,10 @@ public class WingsCookieInterceptorImpl implements WingsCookieInterceptor {
         if (path != null) {
             nc.setPath(path);
         }
-        final String comment = cookie.getComment();
-        if (comment != null) {
-            nc.setComment(comment);
-        }
 
         nc.setMaxAge(cookie.getMaxAge());
         nc.setHttpOnly(cookie.isHttpOnly());
         nc.setSecure(cookie.getSecure());
-        nc.setVersion(cookie.getVersion());
         return nc;
     }
 
@@ -200,7 +195,7 @@ public class WingsCookieInterceptorImpl implements WingsCookieInterceptor {
         for (Map.Entry<String, String> en : alias.entrySet()) {
             final String k = en.getKey();
             final String v = en.getValue();
-            if (k.equals(v) || invalidValue(v)) {
+            if (k.equals(v) || notValue(v)) {
                 continue;
             }
             aliasEnc.put(k, v);

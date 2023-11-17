@@ -7,20 +7,27 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.Condition;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import pro.fessional.wings.faceless.service.journal.JournalService;
 import pro.fessional.wings.slardar.context.GlobalAttributeHolder;
-import pro.fessional.wings.slardar.event.EventPublishHelper;
+import pro.fessional.wings.slardar.context.TerminalContext;
+import pro.fessional.wings.slardar.errcode.AuthnErrorEnum;
 import pro.fessional.wings.slardar.security.WingsAuthTypeParser;
+import pro.fessional.wings.spring.consts.OrderedWarlockConst;
 import pro.fessional.wings.warlock.constants.WarlockGlobalAttribute;
-import pro.fessional.wings.warlock.constants.WarlockOrderConst;
 import pro.fessional.wings.warlock.database.autogen.tables.WinUserAuthnTable;
 import pro.fessional.wings.warlock.database.autogen.tables.WinUserBasisTable;
 import pro.fessional.wings.warlock.database.autogen.tables.daos.WinUserAuthnDao;
 import pro.fessional.wings.warlock.database.autogen.tables.daos.WinUserBasisDao;
-import pro.fessional.wings.warlock.enums.autogen.UserStatus;
-import pro.fessional.wings.warlock.event.auth.WarlockMaxFailedEvent;
+import pro.fessional.wings.warlock.security.error.FailureWaitingInternalAuthenticationServiceException;
 import pro.fessional.wings.warlock.service.auth.WarlockAuthnService;
+import pro.fessional.wings.warlock.service.auth.WarlockDangerService;
+import pro.fessional.wings.warlock.service.user.WarlockUserAuthnService;
 import pro.fessional.wings.warlock.service.user.WarlockUserLoginService;
+import pro.fessional.wings.warlock.spring.prop.WarlockDangerProp;
+
+import java.util.Locale;
 
 /**
  * @author trydofor
@@ -30,7 +37,7 @@ import pro.fessional.wings.warlock.service.user.WarlockUserLoginService;
 public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
 
     @Getter @Setter
-    private int order = WarlockOrderConst.DefaultDaoAuthnCombo;
+    private int order = OrderedWarlockConst.DefaultDaoAuthnCombo;
 
     @Setter(onMethod_ = {@Autowired})
     protected WinUserBasisDao winUserBasisDao;
@@ -45,10 +52,30 @@ public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
     protected WarlockUserLoginService warlockUserLoginService;
 
     @Setter(onMethod_ = {@Autowired})
+    protected WarlockUserAuthnService warlockUserAuthnService;
+
+    @Setter(onMethod_ = {@Autowired})
     protected JournalService journalService;
+
+    @Setter(onMethod_ = {@Autowired})
+    protected MessageSource messageSource;
+
+    @Setter(onMethod_ = {@Autowired})
+    protected WarlockDangerProp warlockDangerProp;
+
+    @Setter(onMethod_ = {@Autowired})
+    protected WarlockDangerService warlockDangerService;
 
     @Override
     public WarlockAuthnService.Details load(@NotNull Enum<?> authType, String username) {
+        final int block = warlockDangerService.check(authType, username);
+        if (block > 0) {
+            final Locale locale = LocaleContextHolder.getLocale();
+            final String code = AuthnErrorEnum.FailureWaiting.getCode();
+            final String message = messageSource.getMessage(code, new Object[]{block}, locale);
+            throw new FailureWaitingInternalAuthenticationServiceException(block, code, message);
+        }
+
         if (winUserBasisDao.notTableExist() || winUserAuthnDao.notTableExist()) return null;
 
         final WinUserBasisTable user = winUserBasisDao.getAlias();
@@ -58,8 +85,8 @@ public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
         final Condition cond = user.Id.eq(auth.UserId)
                                       .and(auth.AuthType.eq(at))
                                       .and(auth.Username.eq(username))
-                                      .and(user.onlyLiveData)
-                                      .and(auth.onlyLiveData);
+                                      .and(user.getOnlyLive())
+                                      .and(auth.getOnlyLive());
 
         return selectDetails(user, auth, authType, cond);
     }
@@ -75,8 +102,8 @@ public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
         final Condition cond = user.Id.eq(auth.UserId)
                                       .and(auth.AuthType.eq(at))
                                       .and(auth.UserId.eq(userId))
-                                      .and(user.onlyLiveData)
-                                      .and(auth.onlyLiveData);
+                                      .and(user.getOnlyLive())
+                                      .and(auth.getOnlyLive());
 
         return selectDetails(user, auth, authType, cond);
     }
@@ -101,13 +128,16 @@ public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
                     .set(ta.FailedCnt, 0)
                     .set(ta.CommitId, commit.getCommitId())
                     .set(ta.ModifyDt, commit.getCommitDt())
-                    .where(ta.UserId.eq(userId))
+                    .where(ta.UserId.eq(userId).and(ta.AuthType.eq(at)))
                     .execute();
         });
+        //
+        final String username = TerminalContext.get().getUsername();
+        warlockDangerService.allow(authType, username);
     }
 
     @Override
-    public void onFailure(@NotNull Enum<?> authType, String username) {
+    public void onFailure(@NotNull Enum<?> authType, String username, String details) {
         if (username == null || username.isEmpty() || winUserAuthnDao.notTableExist()) return;
 
         final String at = wingsAuthTypeParser.parse(authType);
@@ -116,7 +146,7 @@ public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
                 .ctx()
                 .select(ta.UserId, ta.FailedCnt, ta.FailedMax, ta.Id)
                 .from(ta)
-                .where(ta.Username.eq(username).and(ta.AuthType.eq(at)).and(ta.onlyLiveData))
+                .where(ta.Username.eq(username).and(ta.AuthType.eq(at)).and(ta.getOnlyLive()))
                 .fetchOne();
 
         if (auth == null) {
@@ -129,41 +159,20 @@ public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
         final long aid = auth.value4();
         final int max = auth.value3();
 
-        //
-        if (cnt > max - 3) {
-            WarlockMaxFailedEvent evt = new WarlockMaxFailedEvent();
-            evt.setCurrent(cnt);
-            evt.setMaximum(max);
-            evt.setUserId(uid);
-            EventPublishHelper.SyncSpring.publishEvent(evt);
-        }
+        final int second = (int) (warlockDangerProp.getRetryStep().toSeconds() * cnt);
+        warlockDangerService.block(authType, username, second);
 
         if (cnt > max) {
-            log.info("ignore login failure by reach max-count={}, auth-type={}, username={}", auth.value3(), at, username);
+            log.info("ignore login failure by reach max-count={}, auth-type={}, username={}", max, at, username);
             return;
         }
 
         journalService.commit(WarlockAuthnService.Jane.Failure, uid, "failed login auth-id=" + aid, commit -> {
-            // 锁账号
-            if (cnt >= max && !winUserBasisDao.notTableExist()) {
-                final WinUserBasisTable tu = winUserBasisDao.getTable();
-                winUserBasisDao
-                        .ctx()
-                        .update(tu)
-                        .set(tu.Status, UserStatus.DANGER)
-                        .set(tu.CommitId, commit.getCommitId())
-                        .set(tu.ModifyDt, commit.getCommitDt())
-                        .set(tu.Remark, "locked by reach the max failure count=" + max)
-                        .where(tu.Id.eq(uid))
-                        .execute();
+            // lock user
+            if (warlockDangerProp.isMaxFailure() && cnt >= max) {
+                log.info("danger user by reach max-count={}, auth-type={}, username={}", max, at, username);
+                warlockUserAuthnService.dander(uid, true);
             }
-
-            WarlockUserLoginService.Auth la = new WarlockUserLoginService.Auth();
-            la.setAuthType(authType);
-            la.setUserId(uid);
-            la.setDetails("");
-            la.setFailed(true);
-            warlockUserLoginService.auth(la);
 
             winUserAuthnDao
                     .ctx()
@@ -173,6 +182,13 @@ public class DefaultDaoAuthnCombo implements ComboWarlockAuthnService.Combo {
                     .set(ta.ModifyDt, commit.getCommitDt())
                     .where(ta.Id.eq(aid))
                     .execute();
+
+            WarlockUserLoginService.Auth la = new WarlockUserLoginService.Auth();
+            la.setAuthType(authType);
+            la.setUserId(uid);
+            la.setDetails(details);
+            la.setFailed(true);
+            warlockUserLoginService.auth(la);
         });
     }
 

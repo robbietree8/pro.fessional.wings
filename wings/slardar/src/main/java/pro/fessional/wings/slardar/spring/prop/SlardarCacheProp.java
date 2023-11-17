@@ -8,8 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static pro.fessional.wings.slardar.cache.WingsCache.Joiner;
+import static pro.fessional.wings.slardar.cache.WingsCache.Wildcard;
 
 /**
+ * LRU (Least Recently Used) default, unit is second, 0=infinitely
+ *
  * @author trydofor
  * @see #Key
  * @since 2021-02-11
@@ -21,7 +24,11 @@ public class SlardarCacheProp {
     public static final String Key = "wings.slardar.cache";
 
     /**
-     * 哪个CacheManager为primary: Memory | Server
+     * <pre>
+     * which CacheManager is primary: MemoryCacheManager | ServerCacheManager
+     * - `MemoryCacheManager` - Cache2k Jvm cache
+     * - `ServerCacheManager` - Hazelcast distributed cache
+     * </pre>
      *
      * @see #Key$primary
      */
@@ -29,23 +36,41 @@ public class SlardarCacheProp {
     public static final String Key$primary = Key + ".primary";
 
     /**
-     * 如何统一处理对null的缓存。weak:以Weak引用缓存; skip:不缓存null；其他值则不统一处理
+     * whether to Resolve the cache name, that is, to append the concrete class name
      *
-     * @see #Key$nulls
+     * @see #Key$expand
      */
-    private String nulls = "weak";
-    public static final String Key$nulls = Key + ".nulls";
-
-    public boolean isNullWeak() {
-        return "weak".equalsIgnoreCase(nulls);
-    }
-
-    public boolean isNullSkip() {
-        return "skip".equalsIgnoreCase(nulls);
-    }
+    private boolean expand = true;
+    public static final String Key$expand = Key + ".expand";
 
     /**
-     * level之外的默认配置
+     * <pre>
+     * in principle, null is not cached. However, it can be handled uniformly.
+     * - `positive` - cache size
+     * - `0` - do not cache null
+     * - `negative` - no uniform processing
+     * </pre>
+     *
+     * @see #Key$nullSize
+     */
+    private int nullSize = 1000;
+    public static final String Key$nullSize = Key + ".null-size";
+
+    /**
+     * in principle, null is not cached. However, it can be handled uniformly.
+     *
+     * @see #Key$nullLive
+     */
+    private int nullLive = 300;
+    public static final String Key$nullLive = Key + ".null-live";
+
+    /**
+     * <pre>
+     * default configuration other than level
+     * - `max-live`=`3600`, expireAfterWrite(Time To Live)
+     * - `max-idle`=`0`, expireAfterAccess(Time To Idle)
+     * - `max-size`=`50000`, cache size
+     * </pre>
      *
      * @see #Key$common
      */
@@ -53,7 +78,8 @@ public class SlardarCacheProp {
     public static final String Key$common = Key + ".common";
 
     /**
-     * 不同的缓存级别
+     * Note, Server using hazelcast will ignore the common setting to avoid non-cache IMap errors.
+     * level setting, you need to use wildcard like `program~*`, see WingsCache naming and separator
      *
      * @see #Key$level
      */
@@ -78,12 +104,8 @@ public class SlardarCacheProp {
 
     // /////////////////
 
-    public static int maxInt(int max) {
-        return max <= 0 ? Integer.MAX_VALUE : max;
-    }
-
     public static String wildcard(String level) {
-        return WingsCache.Level.join(level, "*");
+        return WingsCache.Level.join(level, Wildcard);
     }
 
     public static boolean inLevel(String name, String level) {

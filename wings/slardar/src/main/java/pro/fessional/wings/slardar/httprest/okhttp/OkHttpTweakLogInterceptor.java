@@ -2,12 +2,15 @@ package pro.fessional.wings.slardar.httprest.okhttp;
 
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Interceptor;
+import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
 import okhttp3.logging.HttpLoggingInterceptor.Level;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.boot.logging.LogLevel;
+import pro.fessional.mirana.time.StopWatch;
 import pro.fessional.wings.silencer.tweak.TweakLogger;
+import pro.fessional.wings.silencer.watch.Watches;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -21,10 +24,12 @@ import static org.springframework.boot.logging.LogLevel.TRACE;
 import static org.springframework.boot.logging.LogLevel.WARN;
 
 /**
- * 关联日志级别
+ * <pre>
+ * Default mapping of Log-level and data-level
  * DEBUG- : BODY
  * INFO : BASIC
  * WARN+ : NONE
+ * </pre>
  *
  * @author trydofor
  * @since 2022-11-01
@@ -45,10 +50,7 @@ public class OkHttpTweakLogInterceptor implements OkHttpInterceptor {
     }
 
     /**
-     * 改变映射关系，如 DEBUG - BODY
-     *
-     * @param lg 日志级别
-     * @param ok 请求日志级别
+     * Change the mapping to Log-level and data-level, e.g. DEBUG - BODY
      */
     public void levelMapping(@NotNull LogLevel lg, @NotNull Level ok) {
         final HttpLoggingInterceptor.Logger okl;
@@ -68,10 +70,7 @@ public class OkHttpTweakLogInterceptor implements OkHttpInterceptor {
     }
 
     /**
-     * 重置映射关系，默认关系
-     * DEBUG- : BODY
-     * INFO : BASIC
-     * WARN+ : NONE
+     * reset to the default mapping
      */
     public void resetMapping() {
         HttpLoggingInterceptor none = new HttpLoggingInterceptor(LoggerWarn);
@@ -96,7 +95,21 @@ public class OkHttpTweakLogInterceptor implements OkHttpInterceptor {
     public Response intercept(@NotNull Interceptor.Chain chain) throws IOException {
         final LogLevel lvl = TweakLogger.currentLevel(log.getName());
         final HttpLoggingInterceptor itc = mapping.get(lvl);
-        return itc.intercept(chain);
+
+        final StopWatch current = Watches.current();
+        if (current == null) {
+            return itc.intercept(chain);
+        }
+
+        //
+        final Request request = chain.request();
+        final String name = "OkHttp " + request.method() + " " + request.url();
+        try (StopWatch.Watch watch = current.start(name)) {
+            return itc.intercept(chain);
+        }
+        finally {
+            Watches.release(true, null);
+        }
     }
 
     @Override

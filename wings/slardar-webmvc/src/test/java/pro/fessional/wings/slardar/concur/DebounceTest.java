@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "debug = true",
                 "wings.slardar.debounce.http-status=202",
                 "wings.slardar.debounce.content-type=text/plain",
                 "wings.slardar.debounce.response-body=debounced",
@@ -71,10 +70,10 @@ class DebounceTest {
         log.info(">>r2>>" + r2.getBody());
         if (reuse) {
             assertEquals(HttpStatus.OK, r2.getStatusCode());
-            assertEquals(r1.getBody(), r2.getBody());
+            assertEquals(r1.getBody(), r2.getBody(),"may be waiting more than 600ms");
         }
         else {
-            assertEquals(202, r2.getStatusCodeValue());
+            assertEquals(202, r2.getStatusCode().value());
             assertEquals("debounced", r2.getBody());
         }
 

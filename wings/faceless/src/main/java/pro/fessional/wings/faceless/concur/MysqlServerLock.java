@@ -1,6 +1,5 @@
 package pro.fessional.wings.faceless.concur;
 
-import com.google.errorprone.annotations.DoNotCall;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -12,8 +11,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 /**
- * 基于Mysql IS_FREE_LOCK和GET_LOCK 实现的锁。
- * mysql实例级，跨实例中的数据库。
+ * Locks based on the Mysql IS_FREE_LOCK and GET_LOCK at mysql instance level.
  *
  * @author trydofor
  * @since 2021-03-08
@@ -96,23 +94,23 @@ public class MysqlServerLock implements Lock {
                 lockName);
         if (rc == null) {
             log.warn("unlock not existed lock, name={}", lockName);
-        } else if (rc == 0) {
+        }
+        else if (rc == 0) {
             log.warn("unlock not owned lock, name={}", lockName);
-        } else {
+        }
+        else {
             log.info("unlock lock, name={}", lockName);
         }
     }
 
     @Override
-    @DoNotCall
-    public void lockInterruptibly() {
+    public void lockInterruptibly() throws UnsupportedOperationException {
         throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
-    @DoNotCall
-    public Condition newCondition() {
+    public Condition newCondition() throws UnsupportedOperationException {
         throw new UnsupportedOperationException();
     }
 }

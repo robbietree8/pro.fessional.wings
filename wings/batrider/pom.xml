@@ -14,12 +14,16 @@
     <packaging>jar</packaging>
 
     <name>Wings::Batrider</name>
-    <description>蝙蝠骑士：Servicecomb的基本设置</description>
+    <description>Basic settings of Servicecomb</description>
+
+    <properties>
+        <start-class>pro.fessional.wings.WhoAmI</start-class>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>pro.fessional.wings</groupId>
-            <artifactId>silencer</artifactId>
+            <artifactId>silencer-curse</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.servicecomb</groupId>

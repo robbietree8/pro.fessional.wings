@@ -1,13 +1,14 @@
 package pro.fessional.wings.slardar.httprest.okhttp;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Call;
 import okhttp3.FormBody;
 import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -19,10 +20,8 @@ import pro.fessional.mirana.time.ThreadNow;
 import pro.fessional.wings.slardar.context.Now;
 import pro.fessional.wings.slardar.jackson.JacksonHelper;
 
-import java.util.Map;
-
 /**
- * https://developer.fedex.com/api/en-us/catalog/authorization/v1/docs.html
+ * <a href="https://developer.fedex.com/api/en-us/catalog/authorization/v1/docs.html">fedex authorization v1</a>
  *
  * @author trydofor
  * @since 2022-11-26
@@ -47,7 +46,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
     private String headerUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36";
 
     /**
-     * 仅支持 AuthorizationCode ClientCredentials
+     * Only support AuthorizationCode ClientCredentials
      */
     private String keyGrantType = "grant_type";
     private String valRefreshToken = RefreshToken;
@@ -66,7 +65,10 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
     private String keyAccessToken = "access_token";
     private String keyExpiresIn = "expires_in";
 
-
+    /**
+     * expiration (ms) of buffer, should avoid expiration
+     */
+    private int expireBuff = 30_000;
     private transient Token token;
 
     @Override
@@ -88,23 +90,24 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
     }
 
     @Override
-    public boolean initToken(@NotNull OkHttpClient client) {
+    public boolean initToken(@NotNull Call.Factory callFactory) {
         final Token tkn = token;
 
         Token newTkn = null;
         if (tkn != null && tkn.refresh != null) {
-            newTkn = fetchByRefresh(client, tkn.refresh);
+            newTkn = fetchByRefresh(callFactory, tkn.refresh);
         }
 
         if (newTkn == null) {
-            newTkn = fetchByGrantType(client);
+            newTkn = fetchByGrantType(callFactory);
         }
 
         token = newTkn;
         return newTkn != null;
     }
 
-    protected Token fetchByRefresh(@NotNull OkHttpClient client, @NotNull String refresh) {
+    @SuppressWarnings("DuplicatedCode")
+    protected Token fetchByRefresh(@NotNull Call.Factory callFactory, @NotNull String refresh) {
         // POST https://gitee.com/oauth/token?grant_type=refresh_token&refresh_token={refresh_token}
         final FormBody.Builder builder = buildRefresh(new FormBody.Builder())
                 .add(keyGrantType, valRefreshToken)
@@ -118,7 +121,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
                 .post(builder.build())
                 .build();
 
-        final String body = OkHttpClientHelper.executeString(client, request, false);
+        final String body = OkHttpClientHelper.executeString(callFactory, request, false);
         return parseToken(body);
     }
 
@@ -127,7 +130,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
         return builder;
     }
 
-    protected Token fetchByGrantType(@NotNull OkHttpClient client) {
+    protected Token fetchByGrantType(@NotNull Call.Factory callFactory) {
         final String code;
         final boolean notnull;
         if (ClientCredentials.equals(valAccessToken)) {
@@ -135,7 +138,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
             notnull = false;
         }
         else if (AuthorizationCode.equals(valAccessToken)) {
-            code = fetchAuthorizationCode(client);
+            code = fetchAuthorizationCode(callFactory);
             notnull = true;
         }
         else {
@@ -147,11 +150,12 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
             return null;
         }
 
-        return fetchAccessToken(client, code);
+        return fetchAccessToken(callFactory, code);
     }
 
+    @SuppressWarnings("DuplicatedCode")
     @Nullable
-    protected Token fetchAccessToken(@NotNull OkHttpClient client, String code) {
+    protected Token fetchAccessToken(@NotNull Call.Factory callFactory, String code) {
         // POST https://gitee.com/oauth/token
         // ?grant_type=authorization_code
         // &code={code}
@@ -166,6 +170,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
         if (redirectUri != null) {
             builder.add(keyRedirectUri, redirectUri);
         }
+
         if (code != null) {
             builder.add(keyCode, code);
         }
@@ -175,7 +180,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
                 .post(builder.build())
                 .build();
 
-        final String body = OkHttpClientHelper.executeString(client, request, false);
+        final String body = OkHttpClientHelper.executeString(callFactory, request, false);
         return parseToken(body);
     }
 
@@ -186,7 +191,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
 
     @SneakyThrows
     @Nullable
-    protected String fetchAuthorizationCode(@NotNull OkHttpClient client) {
+    protected String fetchAuthorizationCode(@NotNull Call.Factory callFactory) {
         // GET https://gitee.com/oauth/authorize
         // ?client_id={client_id}
         // &redirect_uri={redirect_uri}
@@ -212,7 +217,7 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
                 .get()
                 .build();
 
-        final Response response = OkHttpClientHelper.execute(client, request, false);
+        final Response response = OkHttpClientHelper.execute(callFactory, request, false);
         return parseAuthorizationCode(response, state);
     }
 
@@ -240,8 +245,8 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
         final ResponseBody body = response.body();
         if (body != null) {
             if (headerAccept.contains("json") || headerAccept.contains("xml")) {
-                final Map<?, ?> map = JacksonHelper.object(body.string(), Map.class);
-                return (String) map.get(keyCode);
+                final JsonNode node = JacksonHelper.object(body.string());
+                return JacksonHelper.getString(node, keyCode, null);
             }
         }
         return null;
@@ -257,32 +262,26 @@ public class OkHttpTokenizeOauth implements OkHttpTokenClient.Tokenize {
     protected Token parseToken(String str) {
         if (str == null) return null;
 
-        final Map<?, ?> map;
+        final JsonNode node;
         if (headerAccept.contains("json") || headerAccept.contains("xml")) {
-            map = JacksonHelper.object(str, Map.class);
+            node = JacksonHelper.object(str);
         }
         else {
             return null;
         }
 
-        final Object exp = map.get(keyExpiresIn);
-        final String act = (String) map.get(keyAccessToken);
-        if (exp == null || act == null) return null;
+        final String act = JacksonHelper.getString(node, keyAccessToken, null);
+        final int exp = JacksonHelper.getInt(node, keyExpiresIn, 0) * 1000;
+        if (act == null || exp < expireBuff) return null;
 
-        int ems;
-        if (exp instanceof Number) {
-            ems = ((Number) exp).intValue() * 1000;
-        }
-        else {
-            ems = Integer.parseInt(exp.toString()) * 1000;
-        }
+        long ms = Now.millis() + exp - expireBuff;
+        final String rft = JacksonHelper.getString(node, keyRefreshToken, null);
 
-        long ms = Now.millis() + ems - 30_000;
-        return new Token(ms, BearerPrefix + act, (String) map.get(keyRefreshToken));
+        return new Token(ms, BearerPrefix + act, rft);
     }
 
     @Data
-    private static class Token {
+    public static class Token {
         private final long expired;
         private final String access;
         private final String refresh;

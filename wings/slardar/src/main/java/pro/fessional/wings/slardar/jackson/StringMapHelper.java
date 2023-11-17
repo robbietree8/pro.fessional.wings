@@ -1,16 +1,16 @@
 package pro.fessional.wings.slardar.jackson;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import pro.fessional.mirana.jaxb.StringMapXmlWriter;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import pro.fessional.wings.silencer.jaxb.StringMapXmlWriter;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 import java.io.IOException;
 import java.util.Map;
 
 /**
- * 辅助生成签名
+ * Signature generation help
  *
  * @author trydofor
  * @since 2019-12-31

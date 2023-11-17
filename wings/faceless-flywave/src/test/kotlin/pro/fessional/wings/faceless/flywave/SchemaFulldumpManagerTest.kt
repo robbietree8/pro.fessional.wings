@@ -21,7 +21,7 @@ import javax.sql.DataSource
 
 @SpringBootTest
 @TestMethodOrder(MethodName::class)
-@Disabled("手动执行，避免污染Git提交文件")
+@Disabled("Export table structure and data to avoid polluting Git workspace")
 class SchemaFulldumpManagerTest {
 
     @Autowired
@@ -39,13 +39,13 @@ class SchemaFulldumpManagerTest {
     lateinit var wingsTestHelper: WingsTestHelper
 
     @Test
-    fun `test0🦁清表重置`() {
+    fun test0CleanTables() {
         wingsTestHelper.cleanTable()
         schemaRevisionManager.checkAndInitSql(FlywaveRevisionScanner.scanMaster(), 0, true)
     }
 
     @Test
-    fun `test1🦁DumpDdl🦁查文件`() {
+    fun test1DumpDdlSeeFile() {
         File(fold).mkdirs()
         val dlls = schemaFulldumpManager.dumpDdl(dataSource, groupedRegexp(false,
                 "SYS_LIGHT_SEQUENCE",
@@ -58,11 +58,11 @@ class SchemaFulldumpManagerTest {
         )
         val file = "$fold/schema.sql"
         schemaFulldumpManager.saveFile(file, dlls)
-        testcaseNotice("检查文件 $file")
+        testcaseNotice("Check File $file")
     }
 
     @Test
-    fun `test2🦁DumpRec🦁查文件`() {
+    fun test2DumpRecSeeFile() {
         File(fold).mkdirs()
         val recs = schemaFulldumpManager.dumpRec(dataSource, groupedTable(true,
                 "SYS_LIGHT_SEQUENCE",
@@ -72,6 +72,6 @@ class SchemaFulldumpManagerTest {
         )
         val file = "$fold/record.sql"
         schemaFulldumpManager.saveFile(file, recs)
-        testcaseNotice("检查文件 $file")
+        testcaseNotice("Check File $file")
     }
 }

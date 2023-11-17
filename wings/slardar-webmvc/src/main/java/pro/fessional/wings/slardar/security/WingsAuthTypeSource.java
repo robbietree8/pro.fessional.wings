@@ -1,8 +1,7 @@
 package pro.fessional.wings.slardar.security;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.jetbrains.annotations.NotNull;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author trydofor
@@ -10,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
  */
 public interface WingsAuthTypeSource {
     /**
-     * 获取 auth type
+     * Build the AuthType from the request
      *
      * @param request HttpServletRequest
      * @return auth type

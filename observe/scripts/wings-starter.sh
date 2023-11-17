@@ -1,24 +1,25 @@
 #!/bin/bash
-THIS_VERSION=2022-09-01
+THIS_VERSION=2023-10-18
 ################ modify the following params ################
-WORK_DIR=''      # 脚本生成文件，日志的目录，默认空（脚本位置）
-TAIL_LOG='log'   # 默认tail的日志，"log|out|new|ask"
-USER_RUN=$USER   # 用来启动程序的用户
-PORT_RUN=''      # 默认端口，空时
-ARGS_RUN='start' # 默认参数。若$1或$2指定
-BOOT_JAR=''      # 主程序。可通过$1覆盖，绝对路径或相对WORK_DIR
-BOOT_OUT=''      # 控制台日志，默认 $BOOT_JAR-*.out
-BOOT_LOG=''      # 程序日志，需要外部指定，用来tail
-BOOT_PID=''      # 主程序pid，默认 $BOOT_JAR.pid
-BOOT_CNF=''      # 外部配置。通过env覆盖
-BOOT_ARG=''      # 启动参数。通过env覆盖
-JAVA_XMS='1G'    # 启动参数。通过env覆盖
-JAVA_XMX='3G'    # 启动参数。通过env覆盖
-WARN_TXT=''      # 预设的警告词
-WARN_AGO=''      # 日志多少秒不更新，则警报，空表示忽略
-WARN_RUN=''      # 若pid消失或日志无更新则执行
+WORK_DIR=''      # directory of script-generated files and logs. default empty (script location)
+TAIL_LOG='log'   # the log to tail, (log|out|new|ask)
+USER_RUN=$USER   # the user to execute the script (ubuntu)
+PORT_RUN=''      # default server port (10086)
+ARGS_RUN='start' # default args (start) use `$1` if empty
+BOOT_JAR=''      # path of boot jar (/data/boot/wings.jar), can be overridden by $1, absolute or relative to WORK_DIR
+BOOT_OUT=''      # console output (/data/boot/wings.out), default $BOOT_JAR.out
+BOOT_LOG=''      # app log (/data/logs/wings.log) specified externally, used for `tail`
+BOOT_PID=''      # app pid (/data/logs/wings.pid) default $BOOT_JAR.pid
+BOOT_CNF=''      # external config (/data/conf/wings/common/,/data/conf/wings/front/)
+BOOT_ARG=''      # args of boot jar (--app.test=one) can lazily evaluate
+JAVA_XMS='1G'    # args of JVM
+JAVA_XMX='3G'    # args of JVM
+WARN_TXT=''      # keyword of warning
+WARN_AGO=''      # alert if the log is not updated for N seconds, empty for disable
+WARN_RUN=''      # execute if the no PID or no log update
 # shellcheck disable=SC2153
-JDK_HOME='' # 指定jdk版本
+JDK_HOME='' # specified jdk version (/data/java/jdk-11.0.2)
+# args of Java8, can lazily evaluate
 # shellcheck disable=SC2016
 JDK8_ARG='
 -Xloggc:${BOOT_TKN}.gc
@@ -26,22 +27,25 @@ JDK8_ARG='
 -XX:+PrintGCDetails
 -XX:+PrintGCDateStamps
 '
+# args of Java9+, can lazily evaluate
 # shellcheck disable=SC2016
 JDK9_ARG='
---add-modules java.se
---add-exports java.base/jdk.internal.ref=ALL-UNNAMED
---add-opens java.base/java.lang=ALL-UNNAMED
+--add-modules=java.se
+--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED
+--add-opens=java.base/java.io=ALL-UNNAMED
 --add-opens=java.base/java.lang.invoke=ALL-UNNAMED
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.net=ALL-UNNAMED
+--add-opens=java.base/java.nio=ALL-UNNAMED
 --add-opens=java.base/java.util=ALL-UNNAMED
---add-opens java.base/java.io=ALL-UNNAMED
---add-opens java.base/java.nio=ALL-UNNAMED
---add-opens java.base/sun.nio.ch=ALL-UNNAMED
---add-opens java.management/sun.management=ALL-UNNAMED
---add-opens jdk.management/com.sun.management.internal=ALL-UNNAMED
+--add-opens=java.base/sun.nio.ch=ALL-UNNAMED
 --add-opens=java.base/sun.security.x509=ALL-UNNAMED
+--add-opens=java.management/sun.management=ALL-UNNAMED
+--add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED
 --add-opens=jdk.unsupported/sun.misc=ALL-UNNAMED
 -Xlog:gc*=info:file=${BOOT_TKN}.gc:time,tid,tags:filecount=5,filesize=100m
 '
+# args of JVM, can lazily evaluate
 # shellcheck disable=SC2016
 JAVA_ARG='
 -server
@@ -59,27 +63,27 @@ JAVA_ARG='
 -XX:ConcGCThreads=8
 '
 # -XX:+ExitOnOutOfMemoryError #docker
-TIME_ZID=''    # java时区，如UTC, GMT+8, Asia/Shanghai
+TIME_ZID='' # java timezone (UTC|GMT+8|Asia/Shanghai)
 
 # ext args
 JAVA_EXT=''
 BOOT_EXT=''
 
 ################ NO NEED to modify the following ################
-BOOT_DTM=$(date '+%y%m%d%H%M%S') # 启动日时
-BOOT_TKN=''                      # 启动token，由jar+dtm构成
-BOOT_MD5=''                      # 以safe模式执行的文件md5sum
-JAR_NAME=''                      # boot-jar本名
-JAVA_OPT=''                      # java 实际启动参加
+BOOT_DTM=$(date '+%y%m%d%H%M%S') # datetime of boot
+BOOT_TKN=''                      # boot token, Composed of jar+dtm
+BOOT_MD5=''                      # execute md5+jar in safe mode
+JAR_NAME=''                      # basename of boot-jar
+JAVA_OPT=''                      # real args of java
 #
 function print_envs() {
     echo -e "#################################################"
     echo -e "# Version \033[32m$THIS_VERSION\033[m # for Mac&Lin / BusyBox&Bash"
-    echo -e "# 使用'ln -s'把此脚本软连接到'执行目录/workdir'，"
-    echo -e "# 链接源及链接的同名'env'，文件会被自动载入，当前覆盖源配置项。"
-    echo -e "# 同一主机环境，同一boot.jar只能执行一份，多份需更名。"
-    echo -e "# 'BOOT_CNF|BOOT_ARG|JAVA_ARG' 内变量可被延时求值，"
-    echo -e "# 使用 ' 为延时求值，使用 \" 为立即求值。 默认Java 11 G1"
+    echo -e "# use 'ln -s' to link this script to the execution 'target/workdir',"
+    echo -e "# the same basename '.env' (wings-release.env) will be auto loaded."
+    echo -e "# only one boot.jar run on one host, rename it to run more copies."
+    echo -e "# 'BOOT_ARG|JAVA_ARG|JDK8_ARG|JDK9_ARG' can be lazily evaluated"
+    echo -e "# in evaluation, ' for delayed, \" for immediate. default Java 11 G1"
     echo -e "#################################################"
     echo -e "\033[37;42;1mINFO: ==== boot env ==== \033[0m"
     echo "work-dir=$WORK_DIR"
@@ -89,6 +93,7 @@ function print_envs() {
 }
 
 function print_help() {
+    echo
     echo -e '\033[32m docker \033[m start in docker with console log'
     echo -e '\033[32m start \033[m start the {boot-jar} and tail the log'
     echo -e '\033[32m starts \033[m start but Not wait log'
@@ -96,13 +101,18 @@ function print_help() {
     echo -e '\033[32m stops [snd=30]\033[m stop but Not confirm'
     echo -e '\033[32m status \033[m show the {boot-jar} runtime status'
     echo -e '\033[32m warn \033[m monitor the {boot-jar} and log'
-    echo -e '\033[32m clean [days=30] [y] \033[m clean up log-file {days} ago'
+    echo -e '\033[32m live \033[m monitor the {boot-jar} and auto restart if lost pid'
+    echo -e '\033[32m clean [days=30] [y] \033[m clean up log-file {days} ago but newest'
+    echo -e '\033[32m clean-jar [days=30] [y] \033[m clean up boot-jar {days} ago but newest'
+    echo -e '\033[32m config \033[m print config envs'
+    echo -e '\033[32m tail \033[m tail boot log or out'
+    echo
     echo -e '\033[32m cron \033[m show the {boot-jar} crontab usage'
     echo -e '\033[32m free \033[m check memory free'
     echo -e '\033[32m check \033[m check shell command'
-    echo -e '\033[32m config \033[m print config envs'
-    echo -e '\033[32m tail \033[m tail boot log or out'
-    echo -e '\033[37;43;1m default is start, for example\033[m'
+    echo -e '\033[32m help \033[m print help message'
+    echo
+    echo -e 'default is \033[37;43;1m start \033[m, for example'
     echo -e './wings-starter.sh'
     echo -e './wings-starter.sh status'
     echo -e './wings-starter.sh boot.jar start'
@@ -131,8 +141,10 @@ function check_cmd() {
 }
 
 function check_user() {
-    if [[ "$USER_RUN" != "$USER" ]]; then
-        echo -e "\033[37;41;1mERROR: need user $USER_RUN to run \033[0m"
+    user=$(id -un) # no $USER in crontab, use id -un instead
+    if [[ "$USER_RUN" != "$user" ]]; then
+        echo -e "\033[37;41;1mERROR: need user $USER_RUN to run, but $user \033[0m"
+        id -un
         exit
     fi
 }
@@ -180,6 +192,28 @@ function check_boot() {
     fi
 }
 
+function safe_start() {
+    # safe backup
+    md5sum "$BOOT_JAR" >"$file_md5"
+    BOOT_MD5=$(awk '{print $1}' <"$file_md5")
+    # `_` as delimiter
+    safe_jar="${BOOT_JAR}_${BOOT_MD5}"
+    if [[ ! -f "$safe_jar" ]]; then
+        echo -e "\033[33mNOTE: copy safe_jar  $safe_jar \033[0m"
+        # do Not use link (soft and hard), as it can overwrite source
+        cp "$BOOT_JAR" "$safe_jar"
+    fi
+
+    #
+    print_args
+    touch "$BOOT_OUT"
+    real_out=$(realpath "$BOOT_OUT")
+    # shellcheck disable=SC2086
+    nohup java $JAVA_OPT -Dwings.console.out=$real_out -jar $safe_jar $BOOT_ARG >$BOOT_OUT 2>&1 &
+    echo "$! ${BOOT_TKN}" >"$BOOT_PID"
+    sleep 2
+}
+
 ################ script body ################
 # load env
 this_file="$0"
@@ -201,11 +235,14 @@ else
 fi
 
 # change workdir
-if [[ ! -d "$WORK_DIR" ]]; then
+if [[ "$WORK_DIR" == "" ]]; then
     WORK_DIR=$(dirname "$this_file")
+else
+    # shellcheck disable=SC2164,SC2046
+    cd $(dirname "$this_file")
 fi
 cd "$WORK_DIR" || exit
-WORK_DIR=$(realpath -s "$WORK_DIR")
+WORK_DIR=$(realpath -s .)
 
 # check arg
 if [[ -L "$1" || -f "$1" ]]; then
@@ -216,6 +253,77 @@ if [[ "$1" != "" ]]; then
     ARGS_RUN="$1"
 fi
 
+# command without check boot
+case "$ARGS_RUN" in
+    cron)
+        this_path=$(realpath -s "$this_file")
+        echo -e "\033[37;43;1mNOTE: ==== crontab usage ==== \033[0m"
+        echo -e "\033[32m crontab -e -u $USER_RUN \033[m"
+        echo -e "\033[32m crontab -l -u $USER_RUN \033[m"
+        echo -e "\033[32m */5 * * * * $this_path warn \033[m"
+        echo -e "\033[32m */5 * * * * $this_path live >> $this_path.cron \033[m"
+        echo -e "\033[32m 0 0 * * * $this_path clean 30 y \033[m"
+        exit
+        ;;
+    free)
+        echo -e "\033[37;42;1mINFO: ==== system memory ==== \033[0m"
+        if [[ -f "/proc/meminfo" ]]; then # in linux
+            mem_tot=$(head /proc/meminfo | grep MemTotal | awk '{print $2"K"}' | numfmt --from=auto --to-unit=1M)
+            mem_fre=$(head /proc/meminfo | grep MemFree | awk '{print $2"K"}' | numfmt --from=auto --to-unit=1M)
+            mem_avl=$(head /proc/meminfo | grep MemAvailable | awk '{print $2"K"}' | numfmt --from=auto --to-unit=1M)
+            mem_min=$(numfmt --from=auto --to-unit=1M $JAVA_XMS)
+            mem_max=$(numfmt --from=auto --to-unit=1M $JAVA_XMX)
+            if [[ "$mem_avl" -lt "$mem_min" ]]; then
+                echo -e "\033[33mNOTE: Available=${mem_avl}Mb < JAVA_XMS=${mem_min}Mb, Total=${mem_tot}Mb, Free=${mem_fre}Mb \033[0m"
+            fi
+            if [[ "$mem_avl" -lt "$mem_max" ]]; then
+                echo -e "\033[33mNOTE: Available=${mem_avl}Mb < JAVA_XMX=${mem_max}Mb, Total=${mem_tot}Mb, Free=${mem_fre}Mb \033[0m"
+            fi
+            head /proc/meminfo
+        else
+            vm_stat
+        fi
+        exit
+        ;;
+    check)
+        echo -e "\033[37;42;1mINFO: ==== check command ==== \033[0m"
+        check_cmd awk
+        check_cmd basename
+        check_cmd cat
+        check_cmd date
+        check_cmd find
+        check_cmd grep
+        check_cmd head
+        check_cmd id
+        check_cmd java
+        check_cmd kill
+        check_cmd ln
+        check_cmd ls
+        check_cmd md5sum
+        check_cmd mv
+        check_cmd nohup
+        check_cmd numfmt
+        check_cmd pgrep
+        check_cmd printf
+        check_cmd ps
+        check_cmd realpath
+        check_cmd tail
+        check_cmd timeout
+        check_cmd touch
+        check_cmd tr
+        check_cmd wc
+        check_cmd which
+        check_cmd xargs
+        exit
+        ;;
+    help)
+        echo -e '\033[37;42;1mNOTE: help info, use the following\033[m'
+        print_help
+        print_envs
+        exit
+        ;;
+esac
+
 # check boot jar
 check_boot
 JAR_NAME=$(basename "$BOOT_JAR")
@@ -225,7 +333,7 @@ if [[ "$BOOT_PID" == "" ]]; then
     BOOT_PID="${JAR_NAME}.pid"
 fi
 
-# boot tkn
+# boot tkn `-` as delimiter
 BOOT_TKN="${JAR_NAME}-${BOOT_DTM}"
 if [[ "$ARGS_RUN" != "start" && -f "$BOOT_PID" ]]; then
     old_tkn=$(awk '{print $2}' "$BOOT_PID")
@@ -252,8 +360,7 @@ if [[ "$JDK_HOME" != "" && "$JDK_HOME" != "$JAVA_HOME" ]]; then
     echo -e "\033[37;42;1mINFO: ==== JAVA_HOME=$JAVA_HOME ==== \033[0m"
 fi
 
-# lazy env
-BOOT_CNF=$(eval "echo \"$BOOT_CNF\"")
+# lazy env eval
 BOOT_ARG=$(eval "echo \"$BOOT_ARG\"")
 JAVA_ARG=$(eval "echo \"$JAVA_ARG\"")
 JDK8_ARG=$(eval "echo \"$JDK8_ARG\"")
@@ -274,7 +381,7 @@ if [[ "$BOOT_EXT" != "" ]]; then
 fi
 
 # check ps
-grep_key=" -jar ${BOOT_JAR}[ -]"
+grep_key=" -jar ${BOOT_JAR}[ _-]"
 count=$(pgrep -f "$grep_key" | wc -l)
 
 # exec cmd
@@ -302,26 +409,8 @@ case "$ARGS_RUN" in
             exit
         fi
 
-        # safe backup
-        md5sum "$BOOT_JAR" >"$file_md5"
-        BOOT_MD5=$(awk '{print $1}' <"$file_md5")
-        safe_jar="$BOOT_JAR-$BOOT_MD5"
-        if [[ ! -f "$safe_jar" ]]; then
-            echo -e "\033[33mNOTE: copy safe_jar  $safe_jar \033[0m"
-            # do Not use link (soft and hard), as it can overwrite source
-            cp "$BOOT_JAR" "$safe_jar"
-        fi
-
-        #
-        print_args
         check_user
-
-        touch "$BOOT_OUT"
-        real_out=$(realpath "$BOOT_OUT")
-        # shellcheck disable=SC2086
-        nohup java $JAVA_OPT -Dwings.console.out=$real_out -jar $safe_jar $BOOT_ARG >$BOOT_OUT 2>&1 &
-        echo "$! ${BOOT_TKN}" >"$BOOT_PID"
-        sleep 2
+        safe_start
 
         cid=$(pgrep -f "$grep_key" | tr '\n' ' ')
         if [[ "$cid" == "" ]]; then
@@ -329,13 +418,13 @@ case "$ARGS_RUN" in
             cat "$BOOT_OUT"
             exit
         else
-            echo -e "\033[37;43;1mNOTE: current PID=$cid of $BOOT_JAR \033[0m"
+            echo -e "\033[37;42;1mINFO: current PID=$cid of $BOOT_JAR \033[0m"
             # shellcheck disable=SC2086
             ps -fwww $cid
         fi
 
         if [[ "$ARGS_RUN" != "start" ]]; then
-            echo -e "\033[37;43;1mNOTE: tail -f $BOOT_OUT \033[0m"
+            echo -e "\033[37;42;1mINFO: tail -f $BOOT_OUT \033[0m"
             timeout -s 9 10 tail -f "$BOOT_OUT"
             echo -e "\033[37;43;1m====== ${BOOT_JAR//?/=} ======\033[0m"
             echo -e "\033[37;43;1m====== $BOOT_JAR ======\033[0m"
@@ -374,7 +463,7 @@ case "$ARGS_RUN" in
         fi
 
         if [[ -f "$tail_log" ]]; then
-            echo -e "\033[37;43;1mNOTE: tail -f $tail_log, Ctrl-C to break \033[0m"
+            echo -e "\033[37;42;1mINFO: tail -f $tail_log, Ctrl-C to break \033[0m"
             tail -f "$tail_log"
         fi
         ;;
@@ -422,6 +511,7 @@ case "$ARGS_RUN" in
             if ! ps $pid >/dev/null; then
                 echo ""
                 echo -e "\033[33mNOTE: successfully stop in $i seconds, pid=$pid of $BOOT_JAR \033[0m"
+                rm -rf "$BOOT_PID"
                 exit
             fi
         done
@@ -432,6 +522,7 @@ case "$ARGS_RUN" in
         fi
         # shellcheck disable=SC2086
         kill -9 $pid
+        rm -rf "$BOOT_PID"
         ;;
     status)
         print_envs
@@ -445,17 +536,17 @@ case "$ARGS_RUN" in
 
         tail_num=20
         if [[ -f "$BOOT_OUT" ]]; then
-            echo -e "\033[37;43;1mNOTE: tail -n $tail_num $BOOT_OUT \033[0m"
+            echo -e "\033[37;42;1mINFO: tail -n $tail_num $BOOT_OUT \033[0m"
             tail -n $tail_num "$BOOT_OUT"
         fi
         if [[ -f "$BOOT_LOG" ]]; then
-            echo -e "\033[37;43;1mNOTE: tail -n $tail_num $BOOT_LOG \033[0m"
+            echo -e "\033[37;42;1mINFO: tail -n $tail_num $BOOT_LOG \033[0m"
             tail -n $tail_num "$BOOT_LOG"
         fi
         pid=$(awk '{print $1}' "$BOOT_PID")
         cid=$(pgrep -f "$grep_key")
-        echo -e "\033[37;43;1mNOTE: boot.pid=$pid \033[0m"
-        echo -e "\033[33mNOTE: current PID=$cid of $BOOT_JAR \033[0m"
+        echo -e "\033[37;42;1mINFO: boot.pid=$pid \033[0m"
+        echo -e "\033[32m current PID=$cid of $BOOT_JAR \033[0m"
         ps -fwww "$cid" || exit
 
         if [[ $pid -ne $cid ]]; then
@@ -466,20 +557,40 @@ case "$ARGS_RUN" in
         mrs=$(ps -o rss "$cid" | grep -v RSS | numfmt --grouping)
         # shellcheck disable=SC2009
         mvs=$(ps -o vsz "$cid" | grep -v VSZ | numfmt --grouping)
-        echo -e "\033[37;43;1mNOTE: ps -o rss -o vsz $cid \033[0m"
-        echo -e "\033[32m Resident= $mrs Kb\033[m"
-        echo -e "\033[32m Virtual=  $mvs Kb\033[m"
+        echo -e "\033[37;42;1mINFO: ps -o rss -o vsz $cid \033[0m"
+        echo -e "Resident (RSS) = $(printf "%*s" 12 $mrs) Kb"
+        echo -e "Virtual  (VSZ) = $(printf "%*s" 12 $mvs) Kb"
 
-        echo -e "\033[37;43;1mNOTE: ==== other useful command ==== \033[0m"
-        echo -e "\033[32m jmap -heap $cid \033[m mac's bug=8161164, lin's ptrace_scope"
+        if [[ "$USER_RUN" == "$USER" ]]; then
+            echo -e "\033[37;42;1mINFO: $(which jstat) -gcutil $cid 1000 3 \033[0m"
+            jstat -gcutil "$cid" 1000 3
+            echo -e "\033[37;42;1mINFO: $(which jstat) -gc $cid 1000 3 \033[0m"
+            jstat -gc "$cid" 1000 3
+        else
+            echo -e "\033[37;43;1mNOTE: sudo $(which jstat) -gcutil $cid 1000 3 \033[0m"
+            echo -e "\033[37;43;1mNOTE: sudo $(which jstat) -gc $cid 1000 3 \033[0m"
+        fi
+
+
+        if id | grep -q '(sudo)'; then
+            if which jhsdb &> /dev/null; then
+                echo -e "\033[37;42;1mINFO: sudo $(which jhsdb) jmap --heap --pid $cid \033[m"
+                sudo jhsdb jmap --heap --pid "$cid"
+            else
+                echo -e "\033[37;42;1mINFO: sudo $(which jmap) -heap $cid \033[m"
+                sudo jmap -heap "$cid"
+            fi
+        else
+            if which jhsdb &> /dev/null; then
+                echo -e "\033[37;43;1mNOTE: sudo $(which jhsdb) jmap --heap --pid $cid \033[m"
+            else
+                echo -e "\033[37;43;1mNOTE: sudo $(which jmap) -heap $cid \033[m"
+            fi
+        fi
+
+        echo -e "\033[37;43;1mNOTE: ==== useful tool ==== \033[0m"
         echo -e "\033[32m profiler.sh -d 30 -f profile.svg $cid \033[m https://github.com/jvm-profiling-tools/async-profiler"
-        echo -e "\033[32m java -jar arthas-boot.jar $cid \033[m https://github.com/alibaba/arthas"
-
-        check_user
-        echo -e "\033[37;43;1mNOTE: jstat -gcutil $cid 1000 1 \033[0m"
-        jstat -gcutil "$cid" 1000 1
-        echo -e "\033[37;43;1mNOTE: jstat -gc $cid 1000 1 \033[0m"
-        jstat -gc "$cid" 1000 1
+        echo -e "\033[32m $(which java) -jar arthas-boot.jar $cid \033[m https://github.com/alibaba/arthas"
         ;;
     tail)
         file_log=$BOOT_LOG
@@ -525,86 +636,86 @@ case "$ARGS_RUN" in
             echo -e "\033[37;42;1mNOTE: $BOOT_JAR good status in PID and LOG \033[0m"
         fi
         ;;
+    live)
+        if [[ $count -ne 0 ]]; then
+            echo -e "\033[33mNOTE: skip $count running $BOOT_JAR \033[0m"
+            exit
+        fi
+        if [[ ! -f "$BOOT_PID" ]]; then
+            echo -e "\033[33mNOTE: skip manually stopped $BOOT_JAR \033[0m"
+            exit
+        fi
+
+        check_java
+        check_user
+        safe_start
+        ;;
     clean)
         dys="$2"
         if [[ "$dys" == "" ]]; then
             dys=30
         fi
-        echo -e "\033[32m find . -name \"${JAR_NAME}[.-]*\" -type f -mtime +$dys \033[m"
-        old=$(find . -name "${JAR_NAME}[.-]*" -type f -mtime +$dys | wc -l)
+        nwt=5
+        echo -e "\033[32m top log ${nwt}-newest ${JAR_NAME} \033[m"
+        # shellcheck disable=SC2012
+        ls -lt "./${JAR_NAME}"-* | head -n $nwt
+        echo -e "\033[32m find $(pwd) -name \"${JAR_NAME}-*\" -type f -mtime +$dys \033[m"
+        old=$(find . -name "${JAR_NAME}-*" -type f -mtime +$dys | wc -l)
         if [[ $old -gt 10 ]]; then
-            find . -name "${JAR_NAME}[.-]*" -type f -mtime +$dys
+            exs="newest-log-${JAR_NAME}.tmp"
+            # shellcheck disable=SC2012
+            ls -t "./${JAR_NAME}"-* | head -n $nwt >"$exs"
+
+            find . -name "${JAR_NAME}-*" -type f -mtime +$dys -print0 | grep -zvFf "$exs" | xargs -0 ls -lt
             echo -e "\033[37;43;1mNOTE: ==== clear ${dys}-days ago log file ==== \033[0m"
             check_user
 
             yon="$3"
             if [[ "$3" == "" ]]; then
-                echo -e "\033[31mWARN: press <y> to rm them all \033[0m"
+                echo -e "\033[31mWARN: press <y> to rm them all, pwd=${WORK_DIR} \033[0m"
                 read -r yon
             fi
             if [[ "$yon" == "y" ]]; then
-                find . -name "${JAR_NAME}[.-]*" -type f -mtime +$dys -print0 | xargs -0 rm -f
+                find . -name "${JAR_NAME}-*" -type f -mtime +$dys -print0 | grep -zvFf "$exs" | xargs -0 rm -f
             fi
+            rm -f "$exs"
         else
-            echo -e "\033[37;42;1mNOTE: few ${dys}-days ago logs \033[0m"
+            echo -e "\033[37;42;1mNOTE: few ${dys}-days ago logs, pwd=${WORK_DIR} \033[0m"
         fi
         ;;
-    cron)
-        this_path=$(realpath -s "$this_file")
-        echo -e "\033[37;43;1mNOTE: ==== crontab usage ==== \033[0m"
-        echo -e "\033[32m crontab -e -u $USER_RUN \033[m"
-        echo -e "\033[32m crontab -l -u $USER_RUN \033[m"
-        echo -e "\033[32m */5 * * * * $this_path warn \033[m"
-        echo -e "\033[32m 0 0 * * * $this_path clean 30 y \033[m"
-        ;;
-    free)
-        echo -e "\033[37;42;1mINFO: ==== system memory ==== \033[0m"
-        if [[ -f "/proc/meminfo" ]]; then # in linux
-            mem_tot=$(head /proc/meminfo | grep MemTotal | awk '{print $2"K"}' | numfmt --from=auto --to-unit=1M)
-            mem_fre=$(head /proc/meminfo | grep MemFree | awk '{print $2"K"}' | numfmt --from=auto --to-unit=1M)
-            mem_avl=$(head /proc/meminfo | grep MemAvailable | awk '{print $2"K"}' | numfmt --from=auto --to-unit=1M)
-            mem_min=$(numfmt --from=auto --to-unit=1M $JAVA_XMS)
-            mem_max=$(numfmt --from=auto --to-unit=1M $JAVA_XMX)
-            if [[ "$mem_avl" -lt "$mem_min" ]]; then
-                echo -e "\033[33mNOTE: Available=${mem_avl}Mb < JAVA_XMS=${mem_min}Mb, Total=${mem_tot}Mb, Free=${mem_fre}Mb \033[0m"
-            fi
-            if [[ "$mem_avl" -lt "$mem_max" ]]; then
-                echo -e "\033[33mNOTE: Available=${mem_avl}Mb < JAVA_XMX=${mem_max}Mb, Total=${mem_tot}Mb, Free=${mem_fre}Mb \033[0m"
-            fi
-            head /proc/meminfo
-        else
-            vm_stat
+    clean-jar)
+        dys="$2"
+        if [[ "$dys" == "" ]]; then
+            dys=30
         fi
-        ;;
-    check)
-        echo -e "\033[37;42;1mINFO: ==== check command ==== \033[0m"
-        check_cmd awk
-        check_cmd basename
-        check_cmd cat
-        check_cmd date
-        check_cmd find
-        check_cmd grep
-        check_cmd head
-        check_cmd java
-        check_cmd jstat
-        check_cmd kill
-        check_cmd ln
-        check_cmd ls
-        check_cmd md5sum
-        check_cmd mv
-        check_cmd nohup
-        check_cmd numfmt
-        check_cmd pgrep
-        check_cmd printf
-        check_cmd ps
-        check_cmd realpath
-        check_cmd tail
-        check_cmd timeout
-        check_cmd touch
-        check_cmd tr
-        check_cmd wc
-        check_cmd which
-        check_cmd xargs
+        jrt=$(dirname "$BOOT_JAR")
+        nwt=5
+        echo -e "\033[32m top jar ${nwt}-newest ${JAR_NAME} \033[m"
+        # shellcheck disable=SC2012
+        ls -lt "${jrt}/${JAR_NAME}"[_-]* | head -n $nwt
+        echo -e "\033[32m find $jrt -name \"${JAR_NAME}[_-]*\" -type f -mtime +$dys \033[m"
+        old=$(find "$jrt" -name "${JAR_NAME}[_-]*" -type f -mtime +$dys | wc -l)
+        if [[ $old -gt 10 ]]; then
+            exs="newest-jar-${JAR_NAME}.tmp"
+            # shellcheck disable=SC2012
+            ls -t "${jrt}/${JAR_NAME}"[_-]* | head -n $nwt >"$exs"
+
+            find "$jrt" -name "${JAR_NAME}[_-]*" -type f -mtime +$dys -print0 | grep -zvFf "$exs" | xargs -0 ls -lt
+            echo -e "\033[37;43;1mNOTE: ==== clear ${dys}-days ago jar, exclude top ${nwt}-newest ==== \033[0m"
+            check_user
+
+            yon="$3"
+            if [[ "$3" == "" ]]; then
+                echo -e "\033[31mWARN: press <y> to rm them all, pwd=$jrt \033[0m"
+                read -r yon
+            fi
+            if [[ "$yon" == "y" ]]; then
+                find "$jrt" -name "${JAR_NAME}[_-]*" -type f -mtime +$dys -print0 | grep -zvFf "$exs" | xargs -0 rm -f
+            fi
+            rm -f "$exs"
+        else
+            echo -e "\033[37;42;1mNOTE: few ${dys}-days ago jars, pwd=$jrt \033[0m"
+        fi
         ;;
     config)
         echo -e '\033[37;42;1mNOTE: ==== conf env ==== \033[m'
@@ -631,11 +742,7 @@ case "$ARGS_RUN" in
         echo "WARN_RUN=$WARN_RUN"
         ;;
     *)
-        if [[ "$ARGS_RUN" == "help" ]]; then
-            echo -e '\033[37;42;1mNOTE: help info, use the following\033[m'
-        else
-            echo -e '\033[37;41;1mERROR: unsupported command, use the following\033[m'
-        fi
+        echo -e '\033[37;41;1mERROR: unsupported command, use the following\033[m'
         print_help
         print_envs
         ;;

@@ -14,12 +14,20 @@
     <packaging>jar</packaging>
 
     <name>Wings::Slardar</name>
-    <description>鱼人守卫：缓存，事件，序列化等基本功能</description>
+    <description>Caching, Event, Serialization/Json and other basic feathers</description>
+
+    <properties>
+        <start-class>pro.fessional.wings.WhoAmI</start-class>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>pro.fessional.wings</groupId>
             <artifactId>silencer-curse</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>pro.fessional.wings</groupId>
+            <artifactId>silencer-jaxb</artifactId>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware</groupId>
@@ -38,11 +46,6 @@
             "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath -->
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-kotlin</artifactId>
-        </dependency>
-        <dependency>
-            <!-- java 11 jaxb-->
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -67,16 +70,13 @@
         </dependency>
         <!-- cache -->
         <dependency>
-            <groupId>javax.cache</groupId>
-            <artifactId>cache-api</artifactId>
+            <groupId>org.cache2k</groupId>
+            <artifactId>cache2k-spring</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>guava</artifactId>
+            <groupId>org.cache2k</groupId>
+            <artifactId>cache2k-jmx</artifactId>
+            <version>${cache2k.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -89,14 +89,6 @@
         </dependency>
         <!-- utils -->
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
@@ -107,7 +99,7 @@
         <!-- sentry -->
         <dependency>
             <groupId>io.sentry</groupId>
-            <artifactId>sentry-spring-boot-starter</artifactId>
+            <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>

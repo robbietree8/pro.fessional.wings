@@ -9,7 +9,7 @@ import pro.fessional.wings.warlock.enums.autogen.UserStatus;
 import java.util.function.Consumer;
 
 /**
- * idea中，main函数执行和spring执行，workdir不同
+ * In IDEA, run from `main` and spring test, they are different in workdir
  *
  * @author trydofor
  * @since 2021-02-20
@@ -17,37 +17,42 @@ import java.util.function.Consumer;
 public class Warlock3JooqGenerator extends ProjectJooqGenerator {
 
     public Warlock3JooqGenerator() {
-        targetDir = "./wings-warlock/src/main/java/";
+        targetDir = "../warlock-autogen/src/main/java/";
         targetPkg = "pro.fessional.wings.warlock.database.autogen";
         configXml = "";
     }
 
     ///
-    public static Consumer<Builder> includeWarlock() {
+    public static Consumer<Builder> includeWarlockBase(boolean append) {
         return builder -> builder
-                // 支持 pattern的注释写法
-                .databaseIncludes(
-                        "sys_constant_enum",
-                        "sys_standard_i18n",
-                        "win_conf_runtime"
-                );
+                // support Pattern comment
+                .databaseIncludes(append, warlockBase);
     }
 
-    public static Consumer<Builder> includeWarlockBond() {
+    public static final String[] warlockBase = {
+            "sys_constant_enum",
+            "sys_standard_i18n",
+            "win_conf_runtime"
+    };
+
+    public static Consumer<Builder> includeWarlockBond(boolean append) {
         return builder -> builder
-                // 支持 pattern的注释写法
-                .databaseIncludes(
-                        "win_perm_entry",
-                        "win_role_entry",
-                        "win_role_grant",
-                        "win_user_authn",
-                        "win_user_basis",
-                        "win_user_grant",
-                        "win_user_login"
-                )
+                // support Pattern comment
+                .databaseIncludes(append, warlockBond)
                 .forcedIntConsEnum(UserGender.class, ".*\\.gender")
                 .forcedIntConsEnum(UserStatus.class, "win_user_basis\\.status")
                 .forcedIntConsEnum(GrantType.class, "win_.*_grant\\.grant_type")
                 ;
     }
+
+    public static final String[] warlockBond = {
+            "win_perm_entry",
+            "win_role_entry",
+            "win_role_grant",
+            "win_user_authn",
+            "win_user_basis",
+            "win_user_grant",
+            "win_user_login"
+    };
+
 }

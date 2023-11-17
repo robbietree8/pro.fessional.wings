@@ -1,15 +1,15 @@
 package pro.fessional.wings.slardar.servlet.stream;
 
+import jakarta.servlet.ReadListener;
+import jakarta.servlet.ServletInputStream;
 import org.jetbrains.annotations.NotNull;
 import pro.fessional.mirana.io.CircleInputStream;
 
-import javax.servlet.ReadListener;
-import javax.servlet.ServletInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
- * 可以循环读的stream
+ * Stream (reuse) that can be read recursively
  *
  * @author trydofor
  * @since 2020-09-25

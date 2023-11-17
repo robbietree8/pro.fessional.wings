@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import pro.fessional.mirana.code.RandCode;
 import pro.fessional.mirana.data.Null;
 import pro.fessional.mirana.data.Z;
-import pro.fessional.wings.faceless.database.helper.ModifyAssert;
+import pro.fessional.wings.faceless.database.helper.DaoAssert;
 import pro.fessional.wings.faceless.service.journal.JournalService;
 import pro.fessional.wings.faceless.service.lightid.LightIdService;
 import pro.fessional.wings.slardar.context.GlobalAttributeHolder;
@@ -19,7 +19,7 @@ import pro.fessional.wings.warlock.database.autogen.tables.daos.WinUserBasisDao;
 import pro.fessional.wings.warlock.database.autogen.tables.pojos.WinUserBasis;
 import pro.fessional.wings.warlock.enums.autogen.UserGender;
 import pro.fessional.wings.warlock.enums.autogen.UserStatus;
-import pro.fessional.wings.warlock.enums.errcode.CommonErrorEnum;
+import pro.fessional.wings.warlock.errcode.CommonErrorEnum;
 import pro.fessional.wings.warlock.service.user.WarlockUserBasisService;
 
 import java.time.ZoneId;
@@ -119,12 +119,12 @@ public class WarlockUserBasisServiceImpl implements WarlockUserBasisService, Ini
             setter.put(tu.Zoneid, user.getZoneId());
             setter.put(tu.Remark, user.getRemark());
             setter.put(tu.Status, user.getStatus());
-            // 一定会更新，除非不存在
+            // Must update, unless not found
             setter.put(tu.CommitId, commit.getCommitId());
             setter.put(tu.ModifyDt, commit.getCommitDt());
             return winUserBasisDao.update(tu, setter, tu.Id.eq(userId), true);
         });
 
-        ModifyAssert.one(rc, CommonErrorEnum.DataNotFound);
+        DaoAssert.assertEq1(rc, CommonErrorEnum.DataNotFound);
     }
 }

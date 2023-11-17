@@ -1,70 +1,96 @@
 package pro.fessional.wings.warlock.security.session;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import pro.fessional.mirana.data.Null;
-import pro.fessional.wings.slardar.cache.caffeine.WingsCaffeine;
+
+import org.cache2k.Cache;
+import org.cache2k.Cache2kBuilder;
+import org.jetbrains.annotations.Nullable;
+import pro.fessional.mirana.data.R;
+
+import java.util.concurrent.TimeUnit;
+
 
 /**
- * 提供5分钟内有效的一次性token关联验证。
- * ①initNonce:发型一次性token
- * ②bindNonceSid:登录成功后，通过uid，绑定token和sessionId
+ * <pre>
+ * Provides a one-time token that valid for 5 minutes to authn.
+ * (1) initNonce: Init one-time token, result = R.NG
+ * (2) bindNonceResult: after successful login, bind result.
+ * </pre>
  *
  * @author trydofor
  * @since 2021-07-01
  */
 public class NonceTokenSessionHelper {
 
-    private static final Cache<String, Sf> caffeine = WingsCaffeine
-            .builder(100_000, 300, 0).build();
+    private static final Cache<String, Sf> cache = Cache2kBuilder
+            .of(String.class, Sf.class)
+            .entryCapacity(100_000)
+            .expireAfterWrite(300, TimeUnit.SECONDS)
+            .build();
 
     private static class Sf {
         private String ip = null;
-        private String sid = null;
+        private R<?> result = null;
     }
 
     /**
-     * 初始化一次性token
+     * Init one-time token
      */
     public static void initNonce(String token, String ip) {
         if (token == null) return;
         final Sf s = new Sf();
         s.ip = ip;
-        caffeine.put(token, s);
+        cache.put(token, s);
     }
 
     /**
-     * 绑定token和sid
+     * bind token to sessionId
      */
-    public static void bindNonceSid(String token, String sid) {
-        final Sf s = caffeine.getIfPresent(token);
+    public static void bindNonceSession(String token, String sid) {
+        final SidData data = () -> sid;
+        final R<?> result = R.okData(data);
+        bindNonceResult(token, result);
+    }
+
+    /**
+     * bind token to result
+     */
+    public static void bindNonceResult(String token, R<?> result) {
+        final Sf s = cache.get(token);
         if (s != null) {
-            s.sid = sid;
+            s.result = result;
         }
     }
 
     /**
-     * 无效掉token
+     * invalid the token
      */
     public static void invalidNonce(String token) {
-        caffeine.invalidate(token);
+        cache.remove(token);
     }
 
     /**
-     * null-为不存在验证
-     * empty-验证进行中
-     * sid-验证成功（如果成功，则自动移除，仅返回一次）
+     * <pre>
+     * null - authn not exist
+     * empty - authn in action
+     * sid - authn success, (auto remove and return only once)
+     * </pre>
      *
-     * @param token 一次性token
+     * @param token one-time token
      * @return null|empty|sid
      */
-    public static String authNonce(String token, String ip) {
+    @Nullable
+    public static R<?> authNonce(String token, String ip) {
         if (token == null || token.isEmpty()) return null;
 
-        final Sf s = caffeine.getIfPresent(token);
+        final Sf s = cache.get(token);
         if (s == null) return null;
-        if (s.sid == null) return Null.Str;
+        if (s.result == null) return R.NG;
 
         invalidNonce(token);
-        return s.ip.equals(ip) ? s.sid : null;
+        return s.ip.equals(ip) ? s.result : null;
+    }
+
+    public interface SidData {
+        String getSid();
     }
 }

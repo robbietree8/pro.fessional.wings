@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @since 2019-06-25
  */
 
-@SpringBootTest(properties = {"debug = true"})
+@SpringBootTest
 public class WingsSilencerProfile0Test {
 
     @Setter(onMethod_ = {@Value("${spring.application.name}")})
@@ -33,7 +33,7 @@ public class WingsSilencerProfile0Test {
 
     @Test
     public void profile() {
-        assertEquals("沉默术士", module);
+        assertEquals("Silencer", module);
         assertEquals("wings-silencer", name);
         assertEquals("empty", moduleTest);
         assertEquals("empty", nameTest);

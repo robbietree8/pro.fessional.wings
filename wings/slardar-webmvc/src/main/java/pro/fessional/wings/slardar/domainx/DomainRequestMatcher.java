@@ -1,6 +1,6 @@
 package pro.fessional.wings.slardar.domainx;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * @author trydofor
@@ -9,11 +9,11 @@ import javax.servlet.http.HttpServletRequest;
 public interface DomainRequestMatcher {
 
     /**
-     * 尝试wrap request，
+     * Try wrap request if matches
      *
-     * @param request 原始请求
-     * @param domain  匹配的domain
-     * @return 原始request或wrap后
+     * @param request original request
+     * @param domain  domain to match
+     * @return original request or wrapped request if matches
      */
     HttpServletRequest match(HttpServletRequest request, String domain);
 }

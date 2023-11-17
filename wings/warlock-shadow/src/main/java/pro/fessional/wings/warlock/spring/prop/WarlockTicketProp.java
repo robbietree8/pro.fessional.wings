@@ -22,16 +22,7 @@ public class WarlockTicketProp {
     public static final String Key = "wings.warlock.ticket";
 
     /**
-     * Aes256的key
-     *
-     * @see #Key$aesKey
-     */
-    private String aesKey = "";
-    public static final String Key$aesKey = Key + ".aes-key";
-
-
-    /**
-     * ticket的PubMod
+     * PubMod of ticket.
      *
      * @see #Key$pubMod
      */
@@ -39,7 +30,7 @@ public class WarlockTicketProp {
     public static final String Key$pubMod = Key + ".pub-mod";
 
     /**
-     * authorization code 过期时间，默认60秒
+     * authorization code expired time, default 60 seconds.
      *
      * @see #Key$codeTtl
      */
@@ -47,7 +38,7 @@ public class WarlockTicketProp {
     public static final String Key$codeTtl = Key + ".code-ttl";
 
     /**
-     * 有效authorization code的最大数量，默认3
+     * max number of valid authorization codes, default 3.
      *
      * @see #Key$codeMax
      */
@@ -55,7 +46,7 @@ public class WarlockTicketProp {
     public static final String Key$codeMax = Key + ".code-max";
 
     /**
-     * access token的过期时间，默认1小时
+     * access token expired time, default 1 hour.
      *
      * @see #Key$tokenTtl
      */
@@ -63,7 +54,7 @@ public class WarlockTicketProp {
     public static final String Key$tokenTtl = Key + ".token-ttl";
 
     /**
-     * 有效access token的最大数量，默认5
+     * max number of valid access token, default 5.
      *
      * @see #Key$tokenMax
      */
@@ -71,7 +62,7 @@ public class WarlockTicketProp {
     public static final String Key$tokenMax = Key + ".token-max";
 
     /**
-     * 静态配置 client 登录信息
+     * static config of client login.
      *
      * @see #Key$client
      */

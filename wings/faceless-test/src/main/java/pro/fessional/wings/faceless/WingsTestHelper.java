@@ -38,7 +38,7 @@ public class WingsTestHelper {
     private final HashMap<DataSource, Boolean> isH2Map = new HashMap<>();
 
     public boolean isH2() {
-        for (DataSource ds : dataSourceContext.getPlains().values()) {
+        for (DataSource ds : dataSourceContext.getBackends().values()) {
             Boolean h2 = isH2Map.computeIfAbsent(ds, dataSource -> {
                 String s = dataSourceContext.cacheJdbcUrl(dataSource);
                 return s.contains(":h2:") || s.contains(":H2:");
@@ -51,13 +51,9 @@ public class WingsTestHelper {
     public void cleanTable() {
         /*
          DROP DATABASE IF EXISTS wings;
-         DROP DATABASE IF EXISTS wings_0;
-         DROP DATABASE IF EXISTS wings_1;
          CREATE DATABASE `wings` DEFAULT CHARACTER SET utf8mb4;
-         CREATE DATABASE `wings_0` DEFAULT CHARACTER SET utf8mb4;
-         CREATE DATABASE `wings_1` DEFAULT CHARACTER SET utf8mb4;
          */
-        dataSourceContext.getPlains().forEach((k, v) -> {
+        dataSourceContext.getBackends().forEach((k, v) -> {
             testcaseNotice("clean database " + k);
             JdbcTemplate tmpl = new JdbcTemplate(v);
             tmpl.query("SHOW TABLES", rs -> {
@@ -70,7 +66,7 @@ public class WingsTestHelper {
 
     public enum Type {
         Table("SHOW TABLES"),
-        Trigger("SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE EVENT_OBJECT_SCHEMA = database()"),
+        Trigger("SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE EVENT_OBJECT_SCHEMA = SCHEMA()"),
         ;
         private final String sql;
 
@@ -85,16 +81,16 @@ public class WingsTestHelper {
         fetchAllColumn1(type.sql).forEach((k, aSet) -> {
             Diff.S<String> diff = Diff.of(aSet, bSet);
             if (!diff.bNotA.isEmpty()) {
-                testcaseNotice(k + " 数据库少：" + type + ":" + String.join(",", diff.bNotA));
+                testcaseNotice(k + " less in db " + type + ":" + String.join(",", diff.bNotA));
                 good.set(false);
             }
             if (!diff.aNotB.isEmpty()) {
-                testcaseNotice(k + " 数据库多：" + type + ":" + String.join(",", diff.aNotB));
+                testcaseNotice(k + " more in db " + type + ":" + String.join(",", diff.aNotB));
                 good.set(false);
             }
         });
 
-        Assertions.assertTrue(good.get(), type.name() + "不一致，查看日志，");
+        Assertions.assertTrue(good.get(), type.name() + " difference, check the logs.");
     }
 
     public void assertHas(Type type, String... str) {
@@ -103,12 +99,12 @@ public class WingsTestHelper {
         fetchAllColumn1(type.sql).forEach((k, aSet) -> {
             Diff.S<String> diff = Diff.of(aSet, bSet);
             if (!diff.bNotA.isEmpty()) {
-                testcaseNotice(k + " 数据库少：" + type + ":" + String.join(",", diff.bNotA));
+                testcaseNotice(k + " less in db " + type + ":" + String.join(",", diff.bNotA));
                 good.set(false);
             }
         });
 
-        Assertions.assertTrue(good.get(), type.name() + "不一致，查看日志，");
+        Assertions.assertTrue(good.get(), type.name() + " difference, check the logs.");
     }
 
     public void assertNot(Type type, String... str) {
@@ -117,12 +113,12 @@ public class WingsTestHelper {
         fetchAllColumn1(type.sql).forEach((k, aSet) -> {
             Diff.S<String> diff = Diff.of(aSet, bSet);
             if (diff.bNotA.size() != bSet.size()) {
-                testcaseNotice(k + " 数据库不能有：" + type + ": " + String.join(",", diff.bNotA));
+                testcaseNotice(k + " cant in db " + type + ":" + String.join(",", diff.bNotA));
                 good.set(false);
             }
         });
 
-        Assertions.assertTrue(good.get(), type.name() + "不一致，查看日志，");
+        Assertions.assertTrue(good.get(), type.name() + " difference, check the logs.");
     }
 
     private List<String> lowerCase(String... str) {
@@ -131,12 +127,12 @@ public class WingsTestHelper {
 
     private Map<String, Set<String>> fetchAllColumn1(String sql) {
         return dataSourceContext
-                .getPlains().entrySet().stream()
+                .getBackends().entrySet().stream()
                 .collect(
                         Collectors.toMap(
                                 Map.Entry::getKey,
                                 e -> new HashSet<>(new JdbcTemplate(e.getValue())
-                                        .query(sql, (rs, i) -> rs.getString(1).toLowerCase())
+                                        .query(sql, (rs, ignored) -> rs.getString(1).toLowerCase())
                                 )
                         )
                 );

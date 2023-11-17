@@ -2,9 +2,8 @@ package pro.fessional.wings.warlock.controller.admin;
 
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.logging.LogLevel;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import pro.fessional.mirana.data.R;
@@ -24,67 +23,49 @@ import static pro.fessional.wings.slardar.event.EventPublishHelper.SyncSpring;
 @ConditionalOnProperty(name = WarlockEnabledProp.Key$controllerTweak, havingValue = "true")
 public class AdminTweakController {
 
-    @Operation(summary = "线程级设置日志级别", description =
-            "# Usage \n"
-            + "根据userId设置日志级别，level==OFF时，为关闭线程设定，复原系统原设置。\n"
-            + "## Params \n"
-            + "* @param userId - 必填，用户id，MAX_VALUE为全部用户\n"
-            + "* @param level - 选填，日志级别，TRACE, DEBUG, INFO, WARN, ERROR和OFF\n"
-            + "## Returns \n"
-            + "* @return {401} 权限不够时 \n"
-            + "* @return {200} 直接访问或redirect时 \n"
-            + "")
+    @Operation(summary = "Tweak the logging level at the thread level", description = """
+            # Usage
+            set log level by userId, reset to the original setting if level==OFF.
+            ## Params
+            * @param userId - required, MAX_VALUE for all user
+            * @param level - optional, e.g. TRACE, DEBUG, INFO, WARN, ERROR and OFF
+            """)
     @PostMapping(value = "${" + WarlockUrlmapProp.Key$adminTweakLogger + "}")
     @ResponseBody
-    public R<Void> adminTweakLogger(@RequestParam("userId") long uid, @RequestParam("level") LogLevel level) {
-        TweakLoggerEvent ev = new TweakLoggerEvent();
-        ev.setUserId(uid);
-        ev.setLevel(level);
+    public R<Void> adminTweakLogger(@RequestBody TweakLoggerEvent ev) {
         SyncSpring.publishEvent(ev);
-        return R.ok();
+        return R.OK;
     }
 
-    @Operation(summary = "线程级设置时钟级别", description =
-            "# Usage \n"
-            + "根据userId设时钟志级别，mills==OFF时，为关闭线程设定，复原系统原设置。\n"
-            + "判断条件，mills在未来3650天(315360000000)，约1980前\n"
-            + " * ①与系统时钟相差的毫秒数\n"
-            + " * ②固定时间(1970-01-01)\n"
-            + " * ③0表示reset\n"
-            + "## Params \n"
-            + "* @param userId - 必填，用户id，MAX_VALUE为全部用户\n"
-            + "* @param mills - 必填，毫秒数\n"
-            + "## Returns \n"
-            + "* @return {401} 权限不够时 \n"
-            + "* @return {200} 直接访问或redirect时 \n"
-            + "")
+    @Operation(summary = "Tweak the clock at the thread level", description = """
+            # Usage
+            Set Clock by userId, reset to the original setting if mills==0
+            Condition, mills in the next 3650 days (315360000000), before 1980
+            (1) milliseconds difference from the system clock
+            (2) fixed time (from 1970-01-01, after 1980)
+            (3) 0 means reset setting, restores the original system settings.
+            ## Params
+            * @param userId - required, MAX_VALUE for all user
+            * @param mills - required, millisecond
+            """)
     @PostMapping(value = "${" + WarlockUrlmapProp.Key$adminTweakClock + "}")
     @ResponseBody
-    public R<Void> adminTweakClock(@RequestParam("userId") long uid, @RequestParam("mills") long mills) {
-        TweakClockEvent ev = new TweakClockEvent();
-        ev.setUserId(uid);
-        ev.setMills(mills);
+    public R<Void> adminTweakClock(@RequestBody TweakClockEvent ev) {
         SyncSpring.publishEvent(ev);
-        return R.ok();
+        return R.OK;
     }
 
-    @Operation(summary = "线程级设置时钟级别", description =
-            "# Usage \n"
-            + "根据userId设时钟志级别，stack==null时，为关闭线程设定，复原系统原设置。\n"
-            + "## Params \n"
-            + "* @param userId - 必填，用户id，MAX_VALUE为全部用户\n"
-            + "* @param stack - 选填，是否有堆栈\n"
-            + "## Returns \n"
-            + "* @return {401} 权限不够时 \n"
-            + "* @return {200} 直接访问或redirect时 \n"
-            + "")
+    @Operation(summary = "Tweak ExceptionStack at the thread level", description = """
+            # Usage
+            Tweak Stack of Exception by userId, reset to the original setting if stack==null
+            ## Params
+            * @param userId - required, MAX_VALUE for all user
+            * @param stack - optional, whether have stack
+            """)
     @PostMapping(value = "${" + WarlockUrlmapProp.Key$adminTweakStack + "}")
     @ResponseBody
-    public R<Void> adminTweakStack(@RequestParam("userId") long uid, @RequestParam(value = "stack", required = false) Boolean stack) {
-        TweakStackEvent ev = new TweakStackEvent();
-        ev.setUserId(uid);
-        ev.setStack(stack);
+    public R<Void> adminTweakStack(@RequestBody TweakStackEvent ev) {
         SyncSpring.publishEvent(ev);
-        return R.ok();
+        return R.OK;
     }
 }

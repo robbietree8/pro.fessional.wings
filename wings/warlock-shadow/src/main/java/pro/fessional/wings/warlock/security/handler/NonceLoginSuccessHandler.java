@@ -1,5 +1,9 @@
 package pro.fessional.wings.warlock.security.handler;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -11,14 +15,10 @@ import pro.fessional.wings.slardar.context.SecurityContextUtil;
 import pro.fessional.wings.warlock.security.justauth.AuthStateBuilder;
 import pro.fessional.wings.warlock.security.session.NonceTokenSessionHelper;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 /**
- * 实现了一次性token换session，需要自行覆盖onResponse
+ * UUse the one-time token to obtain the session, `onResponse` need to be Override
  *
  * @author trydofor
  * @see SavedRequestAwareAuthenticationSuccessHandler
@@ -41,7 +41,7 @@ public class NonceLoginSuccessHandler extends SavedRequestAwareAuthenticationSuc
         if (session != null) {
             sid = session.getId();
             if (state != null) {
-                NonceTokenSessionHelper.bindNonceSid(state, sid);
+                NonceTokenSessionHelper.bindNonceSession(state, sid);
                 log.info("parse client state={}, uid={}", state, uid);
             }
         }
@@ -55,9 +55,9 @@ public class NonceLoginSuccessHandler extends SavedRequestAwareAuthenticationSuc
      * @param req   HttpServletRequest
      * @param res   HttpServletResponse
      * @param aun   Authentication
-     * @param sid   session id, 无session登录时，可能为null
+     * @param sid   session id, null if no-login
      * @param uid   user id
-     * @param state oauth2 state中包含的客户端设置的state
+     * @param state The state set by the client contained in the oauth2 state
      */
     protected void onResponse(@NotNull HttpServletRequest req, @NotNull HttpServletResponse res, @NotNull Authentication aun,
                               @Nullable String sid, long uid, @Nullable String state) throws ServletException, IOException {

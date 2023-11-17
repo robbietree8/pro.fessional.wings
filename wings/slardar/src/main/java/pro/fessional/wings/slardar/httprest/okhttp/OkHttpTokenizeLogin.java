@@ -1,11 +1,12 @@
 package pro.fessional.wings.slardar.httprest.okhttp;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Call;
 import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -13,10 +14,8 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import pro.fessional.wings.slardar.jackson.JacksonHelper;
 
-import java.util.Map;
-
 /**
- * 传统的Form登录
+ * Traditional Post-Form Login
  *
  * @author trydofor
  * @since 2022-11-26
@@ -26,39 +25,40 @@ import java.util.Map;
 public class OkHttpTokenizeLogin implements OkHttpTokenClient.Tokenize {
 
     /**
-     * 登录用户的参数名
+     * Parameter name of username.
      */
     private String keyUsername = "username";
     /**
-     * 登录密码的参数名
+     * Parameter name of password.
      */
     private String keyPassword = "password";
     /**
-     * 解析token时，使用的key，默认等于headerAuth
+     * The key used when parsing the token, which by default is equal to headerAuth
      */
     private String keyToken;
 
     /**
-     * 登录网址
+     * Url to login
      */
     private String loginUrl;
     /**
-     * 登录的用户名
+     * login username
      */
     private String username;
     /**
-     * 登录的密码
+     * login password
      */
     private String password;
 
     /**
-     * 设置token的header名。注意不是cookie，cookie会按cookie自动完成
+     * Set the header name of token. Note, it's not a cookie, cookie will be auto-completed
      */
     private String headerAuth;
 
     /**
-     * 是否为自动的Cookie模式，默认false。
-     * true时，仅401进行login，而其他动作交给cookie机制处理
+     * Whether to use auto cookie mode, default false.
+     * If true, do auto login only if only response is 401,
+     * other actions are handled by the cookie mechanism.
      */
     private boolean cookieAuto = false;
 
@@ -88,7 +88,7 @@ public class OkHttpTokenizeLogin implements OkHttpTokenClient.Tokenize {
 
     @SneakyThrows
     @Override
-    public boolean initToken(@NotNull OkHttpClient client) {
+    public boolean initToken(@NotNull Call.Factory callFactory) {
         final FormBody.Builder builder = buildForm(new FormBody.Builder())
                 .add(keyUsername, username)
                 .add(keyPassword, password);
@@ -100,7 +100,7 @@ public class OkHttpTokenizeLogin implements OkHttpTokenClient.Tokenize {
                 .post(builder.build())
                 .build();
 
-        final Response res = OkHttpClientHelper.execute(client, request, false);
+        final Response res = OkHttpClientHelper.execute(callFactory, request, false);
 
         if (cookieAuto) return true;
 
@@ -136,8 +136,8 @@ public class OkHttpTokenizeLogin implements OkHttpTokenClient.Tokenize {
     protected String parseBody(String str) {
         if (str == null) return null;
         if (headerAccept.contains("json") || headerAccept.contains("xml")) {
-            final Map<?, ?> map = JacksonHelper.object(str, Map.class);
-            return (String) map.get(headerAuth);
+            final JsonNode node = JacksonHelper.object(str);
+            return JacksonHelper.getString(node, headerAuth, null);
         }
         else {
             return null;

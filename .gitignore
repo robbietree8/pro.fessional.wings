@@ -29,6 +29,10 @@ buildNumber.properties
 *.gc
 *.heap
 *.bak
+*.jfr
+
+# local db
+*.db
 
 # BlueJ files
 *.ctxt
@@ -55,3 +59,7 @@ hs_err_pid*
 ###
 *~
 .DS_Store
+
+###
+.cache
+.temp

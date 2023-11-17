@@ -1,5 +1,7 @@
 package pro.fessional.wings.slardar.webmvc;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
@@ -7,8 +9,6 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
 import pro.fessional.wings.slardar.servlet.response.view.PlainTextView;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
@@ -51,10 +51,10 @@ public abstract class WingsExceptionResolver<T extends Exception> extends Abstra
     }
 
     /**
-     * 解析异常
+     * Resolve Exception
      *
-     * @param ex 当前异常
-     * @return null 如果不支持
+     * @param ex current exception
+     * @return null if not support
      */
     protected abstract SimpleResponse resolve(T ex);
 }

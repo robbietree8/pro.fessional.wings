@@ -1,9 +1,9 @@
 package pro.fessional.wings.slardar.servlet.resolver;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -35,7 +35,7 @@ public class WingsRemoteResolver {
     }
 
     /**
-     * 组合remote的ip,agent,及header，构造唯一key
+     * Construct a unique key by remote ip, agent and header
      */
     @NotNull
     public String resolveRemoteKey(HttpServletRequest request, String... header) {

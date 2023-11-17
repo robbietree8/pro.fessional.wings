@@ -1,5 +1,8 @@
 package pro.fessional.wings.slardar.servlet.resolver;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.i18n.LocaleContext;
@@ -13,9 +16,6 @@ import pro.fessional.wings.slardar.context.SecurityContextUtil;
 import pro.fessional.wings.slardar.context.TerminalContext;
 import pro.fessional.wings.slardar.security.WingsUserDetails;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.time.ZoneId;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -28,12 +28,13 @@ import static pro.fessional.wings.slardar.context.TerminalAttribute.LocaleByUid;
 import static pro.fessional.wings.slardar.context.TerminalAttribute.ZoneIdByUid;
 
 /**
- * 按以下优先顺序获得用户语言和时区设置。
- * ① request中被设置的`WINGS.I18N_CONTEXT`
- * ② query string `locale`, `zoneid`
- * ③ http header `Accept-Language`,`Zone-Id`
- * ④ cookie `WINGS_LOCALE`, `WINGS_ZONEID`
- * ⑤ 登录用户的SecurityContext中获得wings设置
+ * get current Locale and ZoneId in the following order:
+ * (1) request `WINGS.I18N_CONTEXT`
+ * (2) query string `locale`, `zoneid`
+ * (3) http header `Accept-Language`,`Zone-Id`
+ * (4) cookie `WINGS_LOCALE`, `WINGS_ZONEID`
+ * (5) login user's SecurityContext to get Wings settings
+ * (6) system default value
  *
  * @author trydofor
  * @since 2019-06-30
@@ -125,7 +126,7 @@ public class WingsLocaleResolver extends AbstractLocaleContextResolver {
                     timeZone = TimeZone.getTimeZone(details.getZoneId());
                 }
 
-                if (details == null) {
+                if (timeZone == null) {
                     timeZone = TerminalContext.defaultTimeZone();
                 }
             }

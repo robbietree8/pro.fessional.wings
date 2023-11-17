@@ -1,5 +1,9 @@
 package pro.fessional.wings.slardar.servlet.request;
 
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -12,10 +16,6 @@ import pro.fessional.mirana.data.Null;
 import pro.fessional.mirana.text.Wildcard;
 import pro.fessional.wings.slardar.servlet.stream.ReuseStreamRequestWrapper;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 类型安全的获得request中的值。
+ * Type-safe to get the value in the request.
  *
  * @author trydofor
  * @since 2019-07-03
@@ -36,10 +36,10 @@ import java.util.Set;
 public class RequestHelper {
 
     /**
-     * 把所有错误信息构造成`\n`分隔的(error=)?message格式
+     * Construct all error messages in `\n` delimited `(error=)?message` format.
      *
-     * @param error 错误信息
-     * @return null 无错误
+     * @param error error message
+     * @return null if no error
      */
     public static String allErrors(@NotNull BindingResult error) {
         if (!error.hasErrors()) return null;
@@ -58,7 +58,7 @@ public class RequestHelper {
     @Nullable
     public static String getCookieValue(HttpServletRequest request, String name) {
         final Cookie[] cookies = request.getCookies();
-        if (cookies == null || cookies.length == 0) return null;
+        if (cookies == null) return null;
         for (Cookie ck : cookies) {
             if (ck.getName().equals(name)) return ck.getValue();
         }
@@ -134,11 +134,11 @@ public class RequestHelper {
     }
 
     /**
-     * 带有contextpath进行URI的忽略大小写的全匹配，支持wildcard
+     * Case-insensitive matching of URI with path, support for wildcard
      *
-     * @param req  请求
-     * @param path 路径，null或空为false
-     * @return 是否匹配
+     * @param req  the request
+     * @param path path pattern, return false if null or empty
+     * @return whether matches
      */
     public static boolean matchIgnoreCase(HttpServletRequest req, String path) {
         if (path == null || path.isEmpty()) return false;
@@ -153,11 +153,11 @@ public class RequestHelper {
     }
 
     /**
-     * 带有contextpath进行URI的忽略大小写的全匹配，支持wildcard
+     * Case-insensitive matching of URI with any of path, support for wildcard
      *
-     * @param req  请求
-     * @param path 路径，null或空为false
-     * @return 是否匹配
+     * @param req  the request
+     * @param path path patterns, return false if null or empty
+     * @return whether matches any
      */
     public static boolean matchIgnoreCase(HttpServletRequest req, String... path) {
         if (path == null) return false;
@@ -220,8 +220,9 @@ public class RequestHelper {
     }
 
     /**
-     * 有些获得 headers中的Bearer然后 Parameter的access_token
-     * `Bearer`和`access_token` 不区分大小写，如果有多个token，取最后一个
+     * First get `Bearer` in Header, if not found, then get `access_token` in Parameter
+     * `Bearer` and `access_token` are case-insensitive,
+     * if there is more than one token, take the last one.
      */
     @Nullable
     public static String getAccessToken(HttpServletRequest request) {

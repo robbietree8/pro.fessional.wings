@@ -3,6 +3,7 @@ package pro.fessional.wings.faceless.database.jooq.listener;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jooq.Clause;
 import org.jooq.Configuration;
@@ -12,9 +13,11 @@ import org.jooq.Param;
 import org.jooq.QueryPart;
 import org.jooq.TableField;
 import org.jooq.VisitContext;
-import org.jooq.impl.DefaultVisitListener;
+import org.jooq.VisitListener;
+import org.jooq.impl.QOM;
 import org.jooq.impl.TableImpl;
 import pro.fessional.mirana.data.Null;
+import pro.fessional.mirana.pain.DebugException;
 import pro.fessional.wings.faceless.database.WingsTableCudHandler;
 
 import java.util.ArrayList;
@@ -26,25 +29,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static pro.fessional.wings.faceless.database.WingsTableCudHandler.Cud;
 
 /**
- * 仅支持jooq的单表insert,update,delete。<p>
- * 不支持merge和replace。不支持batch执行(无法获得bind值)<p>
- * 仅支持eq,le,ge,in的where条件。<p>
- * 注意：visit可能触发多次，任何需要render的地方，如日志debug，toString等<p>
+ * <pre>
+ * Only support for single table insert,update,delete in jooq.
+ * No support for merge and replace.
+ * No support for batch execution (cannot get bind values)
+ * Only support where conditions for eq,le,ge,in.
+ * INSERT_ON_DUPLICATE_KEY_UPDATE as UPDATE
+ * </pre>
  *
  * @author trydofor
  * @since 2021-01-14
  */
+@SuppressWarnings("removal")
 @Slf4j
-public class TableCudListener extends DefaultVisitListener {
+public class TableCudListener implements VisitListener, WingsTableCudHandler.Auto {
 
+    /**
+     * for debug only
+     */
     public static boolean WarnVisit = false;
 
     @Setter @Getter
-    private boolean insert = true;
+    private boolean create = true;
     @Setter @Getter
     private boolean update = true;
     @Setter @Getter
@@ -61,33 +72,35 @@ public class TableCudListener extends DefaultVisitListener {
         EXECUTING_FIELD_MAP, // Map<String, List<Object>>
         EXECUTING_INSERT_IDX,
         EXECUTING_INSERT_CNT,
+        EXECUTING_INSERT_UPD,
         EXECUTING_WHERE_KEY,
-        EXECUTING_WHERE_CMP, // String 固定值 Null, WHERE_EQ, WHERE_IN
+        EXECUTING_WHERE_CMP, // String fixed Null, WHERE_EQ, WHERE_IN
     }
 
     private static final String WHERE_EQ = "=";
     private static final String WHERE_IN = "in";
 
     @Override
-    @SuppressWarnings("deprecation")
     public void clauseStart(VisitContext context) {
         if (WarnVisit) {
             final String clz = scn(context.queryPart());
             final Clause clause = context.clause();
             if (clause == Clause.INSERT || clause == Clause.UPDATE || clause == Clause.DELETE) {
                 log.warn(">>> clauseStart Clause=" + clause + ", Query=" + clz
-                        , new RuntimeException("debug for call stack"));
+                        , new DebugException("debug for call stack"));
             }
             else {
-                log.warn(">>> clauseStart Clause=" + clause + ", Query=" + clz);
+                log.warn(">>> clauseStart Clause={}, Query={}", clause, clz);
             }
         }
 
+        if (handlers.isEmpty() || tableField.isEmpty()) return;
         if (context.renderContext() == null) return;
 
         final Clause clause = context.clause();
         final Cud cud;
-        if (insert && clause == Clause.INSERT) {
+        if (create && clause == Clause.INSERT) {
+            // on duplicate key update
             cud = Cud.Create;
         }
         else if (update && clause == Clause.UPDATE) {
@@ -102,7 +115,8 @@ public class TableCudListener extends DefaultVisitListener {
 
         for (Map.Entry<Object, Object> ent : context.data().entrySet()) {
             final Object key = ent.getKey();
-            if (key instanceof Enum<?> && ((Enum<?>) key).name().equals("DATA_COUNT_BIND_VALUES")) {
+            // org.jooq.impl.Tools.BooleanDataKey#DATA_COUNT_BIND_VALUES;
+            if (key instanceof Enum<?> em && "DATA_COUNT_BIND_VALUES".equals(em.name())) {
                 if (WarnVisit) {
                     log.warn(">>> got DATA_COUNT_BIND_VALUES");
                 }
@@ -115,21 +129,23 @@ public class TableCudListener extends DefaultVisitListener {
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "deprecation"})
+    @SuppressWarnings({"unchecked"})
     public void clauseEnd(VisitContext context) {
 
         if (WarnVisit) {
             final String clz = scn(context.queryPart());
             final Clause clause = context.clause();
             if (clause == Clause.INSERT || clause == Clause.UPDATE || clause == Clause.DELETE) {
-                log.warn("<<< clauseEnd   Clause=" + clause + ", Query=" + clz + "\n\n");
+                log.warn("<<< clauseEnd   Clause={}, Query={}\n\n", clause, clz);
             }
             else {
-                log.warn(">>> clauseStart Clause=" + clause + ", Query=" + clz);
+                log.warn(">>> clauseStart Clause={}, Query={}", clause, clz);
             }
         }
 
-        final Cud cud = (Cud) context.data(ContextKey.EXECUTING_VISIT_CUD);
+        if (handlers.isEmpty() || tableField.isEmpty()) return;
+
+        Cud cud = (Cud) context.data(ContextKey.EXECUTING_VISIT_CUD);
         if (cud == null) return;
 
         final Clause clause = context.clause();
@@ -139,29 +155,37 @@ public class TableCudListener extends DefaultVisitListener {
 
         if (context.renderContext() == null) return;
 
-        final String table = (String) context.data(ContextKey.EXECUTING_TABLE_STR);
-        if (table == null) {
+        final String tbl = (String) context.data(ContextKey.EXECUTING_TABLE_STR);
+        if (tbl == null) {
             log.warn("find CUD without table, may be unsupported, sql={}", context.renderContext());
             return;
         }
 
-        Map<String, List<?>> field = (Map<String, List<?>>) context.data(ContextKey.EXECUTING_FIELD_MAP);
-        if (field == null) field = Collections.emptyMap();
+        final Map<String, List<?>> field = (Map<String, List<?>>) context.data(ContextKey.EXECUTING_FIELD_MAP);
 
-        log.debug("handle CUD={}, table={}, filed={}", cud, table, field);
+        final Object upd = context.data(ContextKey.EXECUTING_INSERT_UPD);
+        if (upd == Boolean.TRUE) {
+            log.debug("find INSERT_ON_DUPLICATE_KEY_UPDATE, set CUD to update");
+            cud = Cud.Update;
+        }
+
+        log.debug("handle CUD={}, table={}, filed={}", cud, tbl, field);
+        final Class<?> src = this.getClass();
+        final Supplier<Map<String, List<?>>> sup = field == null ? Collections::emptyMap : () -> field;
+
         for (WingsTableCudHandler hd : handlers) {
             try {
-                hd.handle(cud, table, field);
+                hd.handle(src, cud, tbl, sup);
             }
             catch (Exception e) {
                 StringBuilder msg = new StringBuilder();
                 msg.append("failed to handle cud=").append(cud);
-                msg.append(", table=").append(table);
+                msg.append(", table=").append(tbl);
                 msg.append(", handle=").append(hd.getClass());
-                if (!field.isEmpty()) {
+                if (field != null && !field.isEmpty()) {
                     msg.append(", field=");
                     for (Map.Entry<String, List<?>> en : field.entrySet()) {
-                        msg.append(",").append(en.getKey()).append(":").append(en.getValue());
+                        msg.append(',').append(en.getKey()).append(':').append(en.getValue());
                     }
                 }
                 log.error(msg.toString(), e);
@@ -198,7 +222,6 @@ public class TableCudListener extends DefaultVisitListener {
         }
     }
 
-    @SuppressWarnings({"deprecation"})
     private void handleDelete(VisitContext context) {
         final Clause clause = context.clause();
         final QueryPart query = context.queryPart();
@@ -214,7 +237,7 @@ public class TableCudListener extends DefaultVisitListener {
         }
     }
 
-    @SuppressWarnings({"deprecation", "unchecked"})
+    @SuppressWarnings({"unchecked"})
     private void handleUpdate(VisitContext context) {
         final Clause clause = context.clause();
         final QueryPart query = context.queryPart();
@@ -223,28 +246,32 @@ public class TableCudListener extends DefaultVisitListener {
         if (clause == Clause.TABLE_REFERENCE && query instanceof TableImpl) {
             handleTable(context, (TableImpl<?>) query);
         }
-        else if (clause == Clause.UPDATE_SET && query instanceof Map) {
+        else if (clause == Clause.UPDATE_SET && query instanceof final Map<?, ?> updSet) {
             final Set<String> fds = (Set<String>) context.data(ContextKey.EXECUTING_FIELD_KEY);
             if (fds == null) {
-                log.debug("should not be here, update-table without key");
+                log.warn("should not be here, update-table without key");
+                return;
+            }
+            if (fds.isEmpty()) {
+                log.debug("skip careless field in update");
                 return;
             }
 
-            final Map<String, List<Object>> map = (Map<String, List<Object>>) context.data(ContextKey.EXECUTING_FIELD_MAP);
-            if (map == null) {
-                log.debug("should not be here, update-table without map");
+            final Map<String, List<Object>> field = (Map<String, List<Object>>) context.data(ContextKey.EXECUTING_FIELD_MAP);
+            if (field == null) {
+                log.warn("should not be here, update-table without field");
                 return;
             }
 
-            final Map<?, ?> updSet = (Map<?, ?>) query;
+            // handle set
             for (Map.Entry<?, ?> en : updSet.entrySet()) {
                 final Object ky = en.getKey();
                 final Object vl = en.getValue();
                 if (ky instanceof TableField && (vl == null || vl instanceof Param)) {
                     final String fd = ((TableField<?, ?>) ky).getName();
                     if (fds.contains(fd)) {
-                        final List<Object> set = map.computeIfAbsent(fd, k -> new ArrayList<>());
-                        set.add(vl == null ? null : ((Param<?>) vl).getValue());
+                        final List<Object> lst = field.computeIfAbsent(fd, k -> new ArrayList<>());
+                        lst.add(vl == null ? null : ((Param<?>) vl).getValue());
                         log.debug("handle update-field, name={}", fd);
                     }
                     else {
@@ -262,9 +289,9 @@ public class TableCudListener extends DefaultVisitListener {
         }
     }
 
-    @SuppressWarnings({"deprecation", "unchecked"})
+    @SuppressWarnings({"unchecked", "UnstableApiUsage"})
     private void handleWhere(VisitContext context, Clause clause, QueryPart query) {
-        if (clause == Clause.FIELD_REFERENCE && query instanceof TableField) {
+        if (clause == Clause.FIELD_REFERENCE && query instanceof TableField<?, ?> field) {
             if (context.data(ContextKey.EXECUTING_WHERE_CMP) == null) {
                 log.debug("skip where without where-clause");
                 return;
@@ -272,40 +299,53 @@ public class TableCudListener extends DefaultVisitListener {
 
             final Set<String> fds = (Set<String>) context.data(ContextKey.EXECUTING_FIELD_KEY);
             if (fds == null) {
-                log.debug("should not be here, table without key");
+                log.warn("should not be here, table without key");
                 return;
             }
-            final String fd = ((TableField<?, ?>) query).getName();
+
+            final String fd = field.getName();
             if (fds.contains(fd)) {
                 log.debug("handle where-field={}", fd);
                 context.data(ContextKey.EXECUTING_WHERE_KEY, fd);
             }
             else {
                 log.debug("skip careless where-field={}", fd);
+                // remove the old key
                 context.data(ContextKey.EXECUTING_WHERE_KEY, null);
             }
         }
-        // 3.16后使用QOM，3.14为query instanceof Keyword
-        else if ((clause == Clause.CONDITION_COMPARISON || clause == Clause.CONDITION_IN) && query instanceof Keyword) {
-            if (context.data(ContextKey.EXECUTING_WHERE_KEY) == null) {
-                log.debug("skip comparison without where-key or careless");
-                return;
-            }
-
-            final String cmp = query.toString();
-            if (cmp.equals("=") || cmp.equals(">=") || cmp.equals("<=")) {
-                log.debug("handle comparison. key={}", cmp);
+        // 3.14 use query instanceof Keyword
+//        else if ((clause == Clause.CONDITION_COMPARISON || clause == Clause.CONDITION_IN) && query instanceof Keyword) {
+//            if (context.data(ContextKey.EXECUTING_WHERE_KEY) == null) {
+//                log.debug("skip comparison without where-key or careless");
+//                return;
+//            }
+//
+//            final String cmp = query.toString();
+//            if (cmp.equals("=") || cmp.equals(">=") || cmp.equals("<=")) {
+//                log.debug("handle comparison. key={}", cmp);
+//                context.data(ContextKey.EXECUTING_WHERE_CMP, WHERE_EQ);
+//            }
+//            else if (cmp.equalsIgnoreCase("in")) {
+//                log.debug("handle comparison. key=in");
+//                context.data(ContextKey.EXECUTING_WHERE_CMP, WHERE_IN);
+//            }
+//            else {
+//                log.debug("skip comparison. key={}", cmp);
+//            }
+//        }
+        // 3.16 use QOM
+        else if ((clause == Clause.CONDITION_COMPARISON || clause == Clause.CONDITION_IN)) {
+            if (query instanceof QOM.Eq || query instanceof QOM.Ge || query instanceof QOM.Le) {
+                log.debug("handle comparison. key={}", query);
                 context.data(ContextKey.EXECUTING_WHERE_CMP, WHERE_EQ);
             }
-            else if (cmp.equalsIgnoreCase("in")) {
+            else if (query instanceof QOM.In || query instanceof QOM.InList) {
                 log.debug("handle comparison. key=in");
                 context.data(ContextKey.EXECUTING_WHERE_CMP, WHERE_IN);
             }
-            else {
-                log.debug("skip comparison. key={}", cmp);
-            }
         }
-        else if (clause == Clause.FIELD_VALUE && query instanceof Param) {
+        else if (clause == Clause.FIELD_VALUE && query instanceof Param<?> param) {
             final String fd = (String) context.data(ContextKey.EXECUTING_WHERE_KEY);
             if (fd == null) {
                 log.debug("skip where-field without where-key or careless");
@@ -321,8 +361,8 @@ public class TableCudListener extends DefaultVisitListener {
             final Object cmp = context.data(ContextKey.EXECUTING_WHERE_CMP);
             if (cmp == WHERE_EQ || cmp == WHERE_IN) {
                 log.debug("handle where-value key={}", cmp);
-                final List<Object> set = map.computeIfAbsent(fd, k -> new ArrayList<>());
-                set.add(((Param<?>) query).getValue());
+                final List<Object> lst = map.computeIfAbsent(fd, k -> new ArrayList<>());
+                lst.add(param.getValue());
             }
         }
     }
@@ -347,7 +387,7 @@ public class TableCudListener extends DefaultVisitListener {
         }
     }
 
-    @SuppressWarnings({"deprecation", "unchecked"})
+    @SuppressWarnings({"unchecked"})
     private void handleInsert(VisitContext context) {
         final Clause clause = context.clause();
         final QueryPart query = context.queryPart();
@@ -356,14 +396,17 @@ public class TableCudListener extends DefaultVisitListener {
             handleTable(context, (TableImpl<?>) query);
         }
         // QueryPartCollectionView
-        else if (clause == Clause.INSERT_INSERT_INTO && query instanceof Collection) {
+        else if (clause == Clause.INSERT_INSERT_INTO && query instanceof Collection<?> col) {
             final Set<String> fds = (Set<String>) context.data(ContextKey.EXECUTING_FIELD_KEY);
             if (fds == null) {
-                log.debug("should not be here, insert-table without key");
+                log.warn("should not be here, insert-table without key");
+                return;
+            }
+            if (fds.isEmpty()) {
+                log.debug("skip careless field in insert");
                 return;
             }
 
-            final Collection<?> col = (Collection<?>) query;
             int cnt = 0;
             final Map<Integer, String> idx = new HashMap<>();
             for (Object o : col) {
@@ -378,60 +421,78 @@ public class TableCudListener extends DefaultVisitListener {
             }
             if (cnt > 0) {
                 log.debug("handle insert-fields. count={}", cnt);
-                context.data(ContextKey.EXECUTING_INSERT_CNT, new AtomicInteger(0));
                 context.data(ContextKey.EXECUTING_INSERT_IDX, idx);
+                context.data(ContextKey.EXECUTING_INSERT_CNT, new AtomicInteger(0));
             }
         }
-        else if (clause == Clause.FIELD_VALUE && query instanceof Param) {
-            final AtomicInteger cnt = (AtomicInteger) context.data(ContextKey.EXECUTING_INSERT_CNT);
-            if (cnt == null) {
-                log.debug("should not be here, insert-fields without cnt");
-                return;
-            }
+        else if (clause == Clause.FIELD_VALUE && query instanceof Param<?> param) {
             final Map<Integer, String> idx = (Map<Integer, String>) context.data(ContextKey.EXECUTING_INSERT_IDX);
             if (idx == null) {
                 log.debug("skip careless insert-fields without index");
                 return;
             }
+
+            final AtomicInteger cnt = (AtomicInteger) context.data(ContextKey.EXECUTING_INSERT_CNT);
+            if (cnt == null) {
+                log.warn("should not be here, insert-fields without cnt");
+                return;
+            }
+
             final String name = idx.get(cnt.incrementAndGet());
             if (name == null) {
                 log.debug("skip careless insert-field not in index");
             }
             else {
-                final Map<String, List<Object>> map = (Map<String, List<Object>>) context.data(ContextKey.EXECUTING_FIELD_MAP);
-                if (map == null) {
-                    log.debug("should not be here, insert-field without map");
+                final Map<String, List<Object>> field = (Map<String, List<Object>>) context.data(ContextKey.EXECUTING_FIELD_MAP);
+                if (field == null) {
+                    log.warn("should not be here, insert-field without field");
                 }
                 else {
-                    final List<Object> set = map.computeIfAbsent(name, k -> new ArrayList<>());
-                    set.add(((Param<?>) query).getValue());
+                    final List<Object> lst = field.computeIfAbsent(name, k -> new ArrayList<>());
+                    lst.add(param.getValue());
                     log.debug("handle insert-field={} with value", name);
                 }
             }
         }
+        else if (clause == Clause.INSERT_ON_DUPLICATE_KEY_UPDATE && query instanceof Keyword) {
+            context.data(ContextKey.EXECUTING_INSERT_UPD, Boolean.TRUE);
+        }
+    }
+
+    @Override
+    public boolean accept(@NotNull Class<?> source, @NotNull Cud cud, @NotNull String table) {
+        // this class or no handler
+        if (source == this.getClass() || handlers.isEmpty()) return false;
+        // careless table
+        final Set<String> fld = tableField.get(table);
+        if (fld == null) return false;
+
+        // cud type matching
+        if (create && (cud == Cud.Create || cud == Cud.Unsure)) return true;
+        if (update && (cud == Cud.Update || cud == Cud.Unsure)) return true;
+        if (delete && (cud == Cud.Delete || cud == Cud.Unsure)) return true;
+
+        // default
+        return false;
     }
 
     @Nullable
-    private String scn(Object obj) {
+    private String scn(QueryPart obj) {
         if (obj == null) return null;
 
-        if (obj instanceof TableImpl) {
-            TableImpl<?> f = (TableImpl<?>) obj;
+        if (obj instanceof TableImpl<?> f) {
             return obj.getClass().getSimpleName() + ":" + f.getName();
         }
 
-        if (obj instanceof TableField) {
-            TableField<?, ?> f = (TableField<?, ?>) obj;
+        if (obj instanceof TableField<?, ?> f) {
             return obj.getClass().getSimpleName() + ":" + f.getName();
         }
 
-        if (obj instanceof Param) {
-            Param<?> p = (Param<?>) obj;
+        if (obj instanceof Param<?> p) {
             return obj.getClass().getSimpleName() + ":name=" + p.getParamName() + ",value=" + p.getValue();
         }
 
-        if (obj instanceof Keyword) {
-            Keyword k = (Keyword) obj;
+        if (obj instanceof Keyword k) {
             return obj.getClass().getSimpleName() + ":" + k;
         }
 

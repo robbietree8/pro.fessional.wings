@@ -8,20 +8,22 @@ import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
+import pro.fessional.mirana.time.ThreadNow;
 
 import java.lang.reflect.Array;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 
 /**
- * 当LocalDate，LocalDateTime，ZonedDateTime，OffsetDateTime为empty时不输出
- * 当Array, Collection，Map为empty时，不输出
+ * <pre>
+ * no output if LocalDate, LocalDateTime, ZonedDateTime or OffsetDateTime is `empty`.
+ * no output if Array, Collection or Map is `empty`.
+ * </pre>
  *
  * @author trydofor
  * @since 2021-10-28
@@ -137,18 +139,18 @@ public class EmptyValuePropertyFilter implements AutoRegisterPropertyFilter {
     }
 
     private boolean emptyDateTime(Date dt) {
-        final LocalDateTime ldt = dt.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        final LocalDateTime ldt = dt.toInstant().atZone(ThreadNow.sysZoneId()).toLocalDateTime();
         return emptyDateTime(ldt);
     }
 
-    // 考虑时区，相差在 offset 小时内
+    // Considering timezone, the difference is considered equal within `offset` hours.
     private boolean emptyDateTime(LocalDateTime dt) {
         if (emptyDate.equals(dt.toLocalDate())) return true;
         if (emptyDateMin == null || emptyDateMax == null) {
             return false;
         }
         else {
-            return dt.compareTo(emptyDateMin) >= 0 && dt.compareTo(emptyDateMax) <= 0;
+            return !dt.isBefore(emptyDateMin) && !dt.isAfter(emptyDateMax);
         }
     }
 

@@ -3,6 +3,7 @@ package pro.fessional.wings.slardar.autozone;
 import org.jetbrains.annotations.NotNull;
 import pro.fessional.mirana.time.DateLocaling;
 import pro.fessional.mirana.time.DateParser;
+import pro.fessional.mirana.time.ThreadNow;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -30,12 +31,12 @@ public class AutoZoneUtil {
 
     @NotNull
     public static ZonedDateTime autoZonedRequest(@NotNull TemporalAccessor dateTime, @NotNull AutoZoneType autoType, @NotNull Supplier<ZoneId> client) {
-        // ① tma是用户发出，先调整为Client时间
+        // (1) tma is sent by the user, first adjusted to Client timezone
         final ZonedDateTime zdt = DateParser.parseZoned(dateTime, client.get());
 
-        // ② 变为System时区
+        // (2) convert to System timezone
         if (autoType == AutoZoneType.Auto || autoType == AutoZoneType.System) {
-            return zdt.withZoneSameInstant(ZoneId.systemDefault());
+            return zdt.withZoneSameInstant(ThreadNow.sysZoneId());
         }
 
         return zdt;
@@ -50,7 +51,7 @@ public class AutoZoneUtil {
     // response : DateTime to String, Default System to Client
     @NotNull
     public static LocalDateTime autoLocalResponse(@NotNull LocalDateTime dateTime, @NotNull AutoZoneType autoType, @NotNull Supplier<ZoneId> client) {
-        // 假设LocalDateTime都是系统时区
+        // Assuming that LocalDateTime are all system timezone
         if (autoType == AutoZoneType.Auto || autoType == AutoZoneType.Client) {
             return DateLocaling.useLdt(dateTime, client.get());
         }
@@ -64,7 +65,7 @@ public class AutoZoneUtil {
             return dateTime.withZoneSameInstant(client.get());
         }
         else if (autoType == AutoZoneType.System) {
-            return dateTime.withZoneSameInstant(ZoneId.systemDefault());
+            return dateTime.withZoneSameInstant(ThreadNow.sysZoneId());
         }
 
         return dateTime;
@@ -76,7 +77,7 @@ public class AutoZoneUtil {
             return dateTime.atZoneSameInstant(client.get()).toOffsetDateTime();
         }
         else if (autoType == AutoZoneType.System) {
-            return dateTime.atZoneSameInstant(ZoneId.systemDefault()).toOffsetDateTime();
+            return dateTime.atZoneSameInstant(ThreadNow.sysZoneId()).toOffsetDateTime();
         }
 
         return dateTime;

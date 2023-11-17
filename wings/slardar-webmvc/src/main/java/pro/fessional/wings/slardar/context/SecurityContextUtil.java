@@ -15,13 +15,15 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
+ * <pre>
  * Wrapper fo SecurityContextHolder.
- * <p>
- * 尽量在controller层使用，当异步时，context会失效。
- * 因为spring的threadlocal仅支持手动inherit。
- * <p>
- * wings中Authentication为UsernamePasswordAuthenticationToken类型；
- * details为WingsAuthDetails类型；principal为WingsUserDetails类型；
+ *
+ * Try to use it in controller layer, if in async thread, the context will fail.
+ * Because spring's threadlocal only supports manual inheritance.
+ *
+ * In wings, the Authentication is UsernamePasswordAuthenticationToken;
+ * details is WingsAuthDetails; principal is WingsUserDetails
+ * </pre>
  *
  * @author trydofor
  * @since 2019-07-09
@@ -49,29 +51,29 @@ public class SecurityContextUtil {
     }
 
     @NotNull
-    public static Authentication getAuthentication() {
+    public static Authentication getAuthentication() throws SecurityContextException {
         return getAuthentication(true);
     }
 
     @Contract("true -> !null")
-    public static Authentication getAuthentication(boolean notnull) {
+    public static Authentication getAuthentication(boolean notnull) throws SecurityContextException {
         final Authentication an = SecurityContextHolder.getContext().getAuthentication();
         if (an == null && notnull) {
-            throw new NullPointerException("failed to getAuthentication");
+            throw new SecurityContextException("failed to getAuthentication");
         }
         return an;
     }
 
     @NotNull
-    public static WingsAuthDetails getAuthDetails() {
+    public static WingsAuthDetails getAuthDetails() throws SecurityContextException {
         return getAuthDetails(true);
     }
 
     @Contract("true -> !null")
-    public static WingsAuthDetails getAuthDetails(boolean notnull) {
+    public static WingsAuthDetails getAuthDetails(boolean notnull) throws SecurityContextException {
         final WingsAuthDetails an = getAuthDetails(WingsAuthDetails.class);
         if (an == null && notnull) {
-            throw new NullPointerException("failed to getAuthDetails");
+            throw new SecurityContextException("failed to getAuthDetails");
         }
         return an;
     }
@@ -94,28 +96,28 @@ public class SecurityContextUtil {
     }
 
     /**
-     * wings中，登录前为用户名，登录成功后为WingsUserDetails
+     * In wings, it is the username before login and WingsUserDetails after successful login.
      */
     @NotNull
-    public static <T> T getPrincipal() {
+    public static <T> T getPrincipal() throws SecurityContextException {
         return getPrincipal(true);
     }
 
     @SuppressWarnings("unchecked")
     @Contract("true -> !null")
-    public static <T> T getPrincipal(boolean notnull) {
+    public static <T> T getPrincipal(boolean notnull) throws SecurityContextException {
         Authentication atn = getAuthentication(notnull);
         final Object pt = atn.getPrincipal();
         if (pt == null && notnull) {
-            throw new NullPointerException("failed to getPrincipal");
+            throw new SecurityContextException("failed to getPrincipal");
         }
         return (T) pt;
     }
 
     /**
-     * 一般为 UserDetailsService 放入的 UserDetails
+     * Generally, it is UserDetails provided by UserDetailsService
      *
-     * @param <T> UserDetails 类型
+     * @param <T> UserDetails type
      * @return UserDetails
      */
     @Nullable
@@ -141,15 +143,15 @@ public class SecurityContextUtil {
     }
 
     @NotNull
-    public static WingsUserDetails getUserDetails() {
+    public static WingsUserDetails getUserDetails() throws SecurityContextException {
         return getUserDetails(true);
     }
 
     @Contract("true -> !null")
-    public static WingsUserDetails getUserDetails(boolean notnull) {
+    public static WingsUserDetails getUserDetails(boolean notnull) throws SecurityContextException {
         final WingsUserDetails dt = getUserDetails(getAuthentication(notnull));
         if (dt == null && notnull) {
-            throw new NullPointerException("failed to getUserDetails");
+            throw new SecurityContextException("failed to getUserDetails");
         }
         return dt;
     }
@@ -188,7 +190,7 @@ public class SecurityContextUtil {
     }
 
     @Contract("true -> !null")
-    public static Long getUserId(boolean notnull) {
+    public static Long getUserId(boolean notnull) throws SecurityContextException {
         final WingsUserDetails dtl = getUserDetails(notnull);
         return dtl == null ? null : dtl.getUserId();
     }

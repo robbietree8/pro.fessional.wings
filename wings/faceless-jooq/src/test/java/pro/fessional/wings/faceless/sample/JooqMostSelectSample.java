@@ -4,6 +4,8 @@ import lombok.Data;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.DataType;
@@ -33,10 +35,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import pro.fessional.mirana.page.PageQuery;
 import pro.fessional.mirana.page.PageResult;
 import pro.fessional.wings.faceless.converter.WingsEnumConverters;
-import pro.fessional.wings.faceless.database.autogen.tables.Tst中文也分表Table;
-import pro.fessional.wings.faceless.database.autogen.tables.daos.Tst中文也分表Dao;
-import pro.fessional.wings.faceless.database.autogen.tables.pojos.Tst中文也分表;
-import pro.fessional.wings.faceless.database.autogen.tables.records.Tst中文也分表Record;
+import pro.fessional.wings.faceless.database.autogen.tables.TstShardingTable;
+import pro.fessional.wings.faceless.database.autogen.tables.daos.TstShardingDao;
+import pro.fessional.wings.faceless.database.autogen.tables.pojos.TstSharding;
+import pro.fessional.wings.faceless.database.autogen.tables.records.TstShardingRecord;
 import pro.fessional.wings.faceless.database.helper.RowMapperHelper;
 import pro.fessional.wings.faceless.database.jooq.WingsJooqUtil;
 import pro.fessional.wings.faceless.database.jooq.converter.JooqConsEnumConverter;
@@ -59,24 +61,27 @@ import static pro.fessional.wings.faceless.WingsTestHelper.REVISION_TEST_V2;
 import static pro.fessional.wings.faceless.WingsTestHelper.testcaseNotice;
 
 /**
- * Jooq的编程能力十分强大，远高于 mybatis系列(mybatis plus)
- * https://www.jooq.org/doc/latest/manual/sql-execution/fetching/
- * https://www.jooq.org/doc/3.12/manual/sql-building/plain-sql-templating/
+ * <pre>
+ * Jooq programming is more powerful than the mybatis series (mybatis plus), see
+ * <a href="https://www.jooq.org/doc/latest/manual/sql-execution/fetching/">fetching</a> and
+ * <a href="https://www.jooq.org/doc/3.12/manual/sql-building/plain-sql-templating/">plain-sql-templating</a>
+ * </pre>
  *
  * @author trydofor
  * @since 2020-08-14
  */
 
-@SpringBootTest(properties = {"debug = true", "logging.level.org.jooq.tools.LoggerListener=DEBUG"})
+@SpringBootTest
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @Slf4j
+@SuppressWarnings("NewClassNamingConvention")
 public class JooqMostSelectSample {
 
     @Setter(onMethod_ = {@Autowired})
     private SchemaRevisionManager schemaRevisionManager;
 
     @Setter(onMethod_ = {@Autowired})
-    private Tst中文也分表Dao dao;
+    private TstShardingDao dao;
 
     @Test
     public void test0Init() {
@@ -86,39 +91,39 @@ public class JooqMostSelectSample {
     }
 
     @Test
-    public void test1按需选择() {
+    public void test1SelectOnDemand() {
         DSLContext ctx = dao.ctx();
-        Tst中文也分表Table t = dao.getTable();
+        TstShardingTable t = dao.getTable();
         Condition c = t.Id.gt(1L).and(t.Id.le(105L));
 
-        testcaseNotice("1个字段，到List");
+        testcaseNotice("1 field to List");
         List<Long> ones = ctx.select(t.Id)
                              .from(t)
                              .where(c)
                              .fetch()
                              .into(Long.class);
 
-        testcaseNotice("1个字段，到List");
+        testcaseNotice("1 field to object");
         Long one = ctx.select(t.Id)
                       .from(t)
                       .where(t.Id.lt(0L))
                       .fetchOneInto(Long.class);
         Assertions.assertNull(one);
 
-        testcaseNotice("2个字段，到Map");
+        testcaseNotice("2 fields to Map");
         Map<Long, String> maps = ctx.select(t.Id, t.LoginInfo)
                                     .from(t)
                                     .where(c)
                                     .fetch()
                                     .intoMap(t.Id, t.LoginInfo);
 
-        testcaseNotice("分组Pojo到Map");
-        Map<Long, List<Tst中文也分表>> grps = ctx.selectFrom(t)
-                                            .where(c)
-                                            .fetch()
-                                            .intoGroups(t.Id, dao.mapper());
+        testcaseNotice("group Pojo to Map");
+        Map<Long, List<TstSharding>> grps = ctx.selectFrom(t)
+                                               .where(c)
+                                               .fetch()
+                                               .intoGroups(t.Id, dao.mapper());
 
-        testcaseNotice("多个字段到2维数组");
+        testcaseNotice("2 fields to 2D array");
         Object[][] arrs = ctx.select(t.Id, t.LoginInfo)
                              .from(t)
                              .where(c)
@@ -127,14 +132,12 @@ public class JooqMostSelectSample {
     }
 
 
-    // 同名
     @Data
     public static class SameName {
         private Long id;
         private String loginInfo;
     }
 
-    // 不同名
     @Data
     public static class DiffName {
         private Long uid;
@@ -142,67 +145,57 @@ public class JooqMostSelectSample {
     }
 
     /**
-     * Record2 to DiffName mapper, auto generate by `wgmp` live template
+     * auto generated by `wgmp` live template
      */
     @Mapper
     public interface Record2ToDiffName {
 
+        @Mapping(target = "uid", expression = "java(source.value1())")
+        @Mapping(target = "str", expression = "java(source.value2())")
+        void mapping(@Nullable Record2<Long, String> source, @NotNull @MappingTarget DiffName target);
+
         Record2ToDiffName INSTANCE = Mappers.getMapper(Record2ToDiffName.class);
 
-        /**
-         * create new DiffName by Record2
-         *
-         * @param a Record2
-         * @return DiffName
-         */
-        static DiffName into(Record2<Long, String> a) {
-            return into(a, new DiffName());
+        @NotNull
+        static DiffName into(@Nullable Record2<Long, String> source) {
+            final DiffName target = new DiffName();
+            INSTANCE.mapping(source, target);
+            return target;
         }
 
-        /**
-         * build DiffName with Record2
-         *
-         * @param a Record2
-         * @param b DiffName
-         */
-        static DiffName into(Record2<Long, String> a, DiffName b) {
-            INSTANCE._into(a, b);
-            return b;
+        static void into(@Nullable Record2<Long, String> source, @NotNull DiffName target) {
+            INSTANCE.mapping(source, target);
         }
-
-        @Mapping(target = "uid", expression = "java(a.value1())")
-        @Mapping(target = "str", expression = "java(a.value2())")
-        void _into(Record2<Long, String> a, @MappingTarget DiffName b);
     }
 
     @Test
-    public void test2存入Pojo() {
+    public void test2InsertPojo() {
         DSLContext ctx = dao.ctx();
-        Tst中文也分表Table t = dao.getTable();
+        TstShardingTable t = dao.getTable();
         Condition c = t.Id.gt(1L).and(t.Id.le(105L));
 
-        testcaseNotice("多个字段(同名子集)到List  *推荐使用*");
+        testcaseNotice("Multiple fields (subsets of the same name) to List *Recommended*");
         List<SameName> sames = ctx.select(t.Id, t.LoginInfo)
                                   .from(t)
                                   .where(c)
                                   .fetch()
                                   .into(SameName.class);
 
-        testcaseNotice("多个字段(不同名，使用字段别名)到List  *推荐使用*");
+        testcaseNotice("Multiple fields (with different names, using field aliases) to List  *Recommended*");
         List<DiffName> alias = ctx.select(t.Id.as("uid"), t.LoginInfo.as("str"))
                                   .from(t)
                                   .where(c)
                                   .fetch()
                                   .into(DiffName.class);
 
-        testcaseNotice("多个字段(同名子集)到List，使用Mapstruct");
+        testcaseNotice("Multiple fields (subsets of the same name) to List, use Mapstruct");
         List<DiffName> diffs = ctx.select(t.Id, t.LoginInfo)
                                   .from(t)
                                   .where(c)
                                   .fetch()
                                   .map(Record2ToDiffName::into);
 
-        testcaseNotice("多个字段(同名子集)到List，使用 lambda");
+        testcaseNotice("Multiple fields (subsets of the same name) to List, use lambda");
         List<DiffName> lambs = ctx.select(t.Id, t.LoginInfo)
                                   .from(t)
                                   .where(c)
@@ -219,9 +212,9 @@ public class JooqMostSelectSample {
     }
 
     @Test
-    public void test3混合SQL() {
-        //////////////////////// 说明部分 ////////////////////////
-        testcaseNotice("其中的 {0}是，0-base的，直接字符串替换的。使用不当会构成sql注入");
+    public void test3MixingSql() {
+        //////////////////////// description ////////////////////////
+        testcaseNotice("where {0} is, for 0-base, a direct string replacement. If used incorrectly, this can lead to SQL Injection.");
         Param<Integer> count = DSL.val(3);
         Param<String> string = DSL.val("abc");
         DSL.field("replace(substr(quote(zeroblob(({0} + 1) / 2)), 3, {0}), '0', {1})", String.class, count, string);
@@ -230,7 +223,7 @@ public class JooqMostSelectSample {
         // argument "count" is repeated twice: \------------------+----------|---------------------/       |
         // argument "string" is used only once:                              \-----------------------------/
 
-        testcaseNotice("模板中支持，java和sql注释，placeholder和variable-binding");
+        testcaseNotice("the template support java and sql comment, placeholder and variable-binding");
         DSL.query(
                 "SELECT /* In a comment, this is not a placeholder: {0}. And this is not a bind variable: ? */ title AS `title {1} ?` " +
                 "-- Another comment without placeholders: {2} nor bind variables: ?" +
@@ -238,12 +231,12 @@ public class JooqMostSelectSample {
                 "WHERE title = 'In a string literal, this is not a placeholder: {3}. And this is not a bind variable: ?'"
         );
 
-        //////////////////////// 执行部分 ////////////////////////
+        //////////////////////// execution ////////////////////////
         DSLContext ctx = dao.ctx();
-        Tst中文也分表Table t = dao.getTable();
+        TstShardingTable t = dao.getTable();
 
-        testcaseNotice("from `tst_中文也分表` where (id >= ? AND id <= ?)"
-                , "from `tst_中文也分表` where (id >= 1 AND id <= 105)");
+        testcaseNotice("from `tst_sharding` where (id >= ? AND id <= ?)"
+                , "from `tst_sharding` where (id >= 1 AND id <= 105)");
         List<SameName> rc1 = ctx.selectFrom(t)
                                 .where(
                                         "id >= ? AND id <= ?",     // The SQL string containing bind value placeholders ("?")
@@ -255,8 +248,8 @@ public class JooqMostSelectSample {
 
         // Plain SQL using embeddable QueryPart placeholders (counting from zero).
         // The QueryPart "index" is substituted for the placeholder {0}, the QueryPart "title" for {1}
-        testcaseNotice("from `tst_中文也分表` where (id >= ? AND id <= ?)"
-                , "from `tst_中文也分表` where (id >= 2 AND id <= 105)");
+        testcaseNotice("from `tst_sharding` where (id >= ? AND id <= ?)"
+                , "from `tst_sharding` where (id >= 2 AND id <= 105)");
         Param<Long> id1 = DSL.val(2L);
         Param<Long> id2 = DSL.val(105L);
         List<SameName> rc2 = ctx.selectFrom(t)
@@ -268,63 +261,66 @@ public class JooqMostSelectSample {
                                 .fetch()
                                 .into(SameName.class);
 
-        log.info("rc2", rc2);
+        log.info("rc2={}", rc2);
     }
 
     @Test
-    public void test3绑定SQL() {
+    public void test3BindSql() {
         DSLContext ctx = dao.ctx();
 
-        testcaseNotice("按map绑定，或者通过 jackson pojo to map");
+        testcaseNotice("Binding by map or jackson pojo to map");
         Map<String, Object> bd1 = new HashMap<>();
         bd1.put("idMin", 3L);
         bd1.put("idMax", 105L);
         bd1.put("offset", 0);
         bd1.put("count", 10);
-        List<SameName> bv1 = ctx.fetch("SELECT id, login_info\n" +
-                                       "FROM tst_中文也分表\n" +
-                                       "WHERE id >=:idMin AND id <=:idMax\n" +
-                                       "ORDER BY login_info DESC,id\n" +
-                                       "LIMIT :offset, :count",
+        List<SameName> bv1 = ctx.fetch("""
+                                                SELECT id, login_info
+                                                FROM tst_sharding
+                                                WHERE id >=:idMin AND id <=:idMax
+                                                ORDER BY login_info DESC,id
+                                                LIMIT :offset, :count""",
                                         WingsJooqUtil.bindNamed(bd1))
                                 .into(SameName.class);
 
-        // 按数组绑定
-        // SELECT id, login_info FROM tst_中文也分表 WHERE id >=? AND id <=? ORDER BY login_info DESC,id LIMIT ?, ?
-        // SELECT id, login_info FROM tst_中文也分表 WHERE id >=4 AND id <=105 ORDER BY login_info DESC,id LIMIT 0, 10
-        testcaseNotice("按数组绑定");
+        // Binding by array
+        // SELECT id, login_info FROM tst_sharding WHERE id >=? AND id <=? ORDER BY login_info DESC,id LIMIT ?, ?
+        // SELECT id, login_info FROM tst_sharding WHERE id >=4 AND id <=105 ORDER BY login_info DESC,id LIMIT 0, 10
+        testcaseNotice("Binding by array");
         Object[] bd2 = {4L, 105L, 0, 10};
-        List<SameName> bv2 = ctx.fetch("SELECT id, login_info\n" +
-                                       "FROM tst_中文也分表\n" +
-                                       "WHERE id >={0} AND id <={1}\n" +
-                                       "ORDER BY login_info DESC, id\n" +
-                                       "LIMIT {2}, {3}", bd2)
+        List<SameName> bv2 = ctx.fetch("""
+                                        SELECT id, login_info
+                                        FROM tst_sharding
+                                        WHERE id >={0} AND id <={1}
+                                        ORDER BY login_info DESC, id
+                                        LIMIT {2}, {3}""", bd2)
                                 .into(SameName.class);
 
-        // 按pojo绑定
+        // Binding by pojo
         SameName bd3 = new SameName();
         bd3.setId(5L);
         bd3.setLoginInfo("LOGIN_INFO-05");
 
-        // 通过record转一下，必须字段同名
-        testcaseNotice("按pojo绑定, 通过record转一下，必须字段同名");
-        Tst中文也分表Record rc = dao.newRecord(bd3);
+        // Convert by record, Must have fields with the same name
+        testcaseNotice("Binding by pojo, Convert by record, Must have fields with the same name");
+        TstShardingRecord rc = dao.newRecord(bd3);
         rc.from(bd3);
-        List<SameName> bv3 = ctx.fetch("SELECT id, login_info\n" +
-                                       "FROM tst_中文也分表\n" +
-                                       "WHERE id = :id OR login_info=:loginInfo\n" +
-                                       "ORDER BY login_info DESC,id", WingsJooqUtil.bindNamed(rc))
+        List<SameName> bv3 = ctx.fetch("""
+                                        SELECT id, login_info
+                                        FROM tst_sharding
+                                        WHERE id = :id OR login_info=:loginInfo
+                                        ORDER BY login_info DESC,id""", WingsJooqUtil.bindNamed(rc))
                                 .into(SameName.class);
 
         log.info("");
     }
 
     @Test
-    public void test3动态SQL() {
-        // 条件构造，多参加 condition和cond*方法
-        Tst中文也分表Table t = dao.getTable();
+    public void test3DynamicSql() {
+        // condition and `cond*`
+        TstShardingTable t = dao.getTable();
 
-        // 通过builder建立，对null友好
+        // by builder, null friendly
         Condition d1 = WingsJooqUtil.condition("1=1");
         Condition d2 = WingsJooqUtil.condition("2=2");
         Condition d3 = WingsJooqUtil.condition("3=3");
@@ -348,54 +344,54 @@ public class JooqMostSelectSample {
         assertEquals(c0.toString(), c1.toString());
 
 
-        testcaseNotice("通过页面过来的pojo构造and条码");
+        testcaseNotice("by passed pojo and `AND`");
         SameName bd1 = new SameName();
         bd1.setId(105L);
         bd1.setLoginInfo("LOGIN_INFO-05");
-        Tst中文也分表Record rc1 = dao.newRecord(bd1);
+        TstShardingRecord rc1 = dao.newRecord(bd1);
 
         // where (`id` = ? and `login_info` = ?)
         // (`id` = 105 and `login_info` = 'LOGIN_INFO-05')
-        testcaseNotice("通过Record和condChain AND");
+        testcaseNotice("by Record and condChain `AND`");
         Condition cd1 = WingsJooqUtil.condChain(AND, rc1);
-        List<Tst中文也分表> rs1 = dao.fetch(dao.getTable(), cd1);
+        List<TstSharding> rs1 = dao.fetch(dao.getTable(), cd1);
 
-        // 通过页面过来的pojo构造Or条码
+        //
         SameName bd2 = new SameName();
         bd2.setId(105L);
         bd2.setLoginInfo("LOGIN_INFO-06");
-        Tst中文也分表Record rc2 = dao.newRecord(bd2);
+        TstShardingRecord rc2 = dao.newRecord(bd2);
         // where (`id` = ? or `login_info` = ?)
         // where (`id` = 105 or `login_info` = 'LOGIN_INFO-06')
-        testcaseNotice("通过Record和condChain OR");
+        testcaseNotice("by Record and condChain `OR`");
         Condition cd2 = WingsJooqUtil.condChain(OR, rc2);
-        List<Tst中文也分表> rs2 = dao.fetch(dao.getTable(), cd2);
+        List<TstSharding> rs2 = dao.fetch(dao.getTable(), cd2);
 
-        // 只取id
+        // only id
         // where `id` = ?
         // where `id` = 105
-        testcaseNotice("通过Record和condChain 单字段");
+        testcaseNotice("by Record and condChain single field");
         List<Condition> cds = WingsJooqUtil.condField(rc2, t.Id);
-        List<Tst中文也分表> rs3 = dao.fetch(t, DSL.condition(OR, cds));
+        List<TstSharding> rs3 = dao.fetch(t, DSL.condition(OR, cds));
 
-        // 通过字符串map构造条件，如用户数据隔离
-        testcaseNotice("通过字符串map构造条件，如用户数据隔离");
+        //
+        testcaseNotice("by string-value map");
         Map<String, Object> map = new HashMap<>();
-        map.put("id", Collections.singletonList(105L));// 当做 in ()处理
+        map.put("id", Collections.singletonList(105L));// use `in()`
 //        map.put("id", 105L);
         map.put("login_info", "LOGIN_INFO-05");
 
-        // from `tst_中文也分表` where (id = ? and login_info = ?)
+        // from `tst_sharding` where (id = ? and login_info = ?)
         Condition cd4 = WingsJooqUtil.condChain(map);
-        List<Tst中文也分表> rc4 = dao.fetch(t, cd4);
+        List<TstSharding> rc4 = dao.fetch(t, cd4);
 
-        // from `tst_中文也分表` as `y8` where (`y8`.`login_info` = ? and `y8`.`id` = ?)
-        testcaseNotice("通过字符串map构造条件，别名");
-        Tst中文也分表Table a = dao.getAlias();
+        // from `tst_sharding` as `y8` where (`y8`.`login_info` = ? and `y8`.`id` = ?)
+        testcaseNotice("by string-value map, and alias");
+        TstShardingTable a = dao.getAlias();
         Condition cd5 = WingsJooqUtil.condChain(map, true, a);
-        List<Tst中文也分表> rc5 = dao.fetch(a, cd5);
+        List<TstSharding> rc5 = dao.fetch(a, cd5);
 
-        // 更新字段，可以直接使用dao.update()
+        // use dao.update() to update
 
         log.info("");
     }
@@ -405,21 +401,21 @@ public class JooqMostSelectSample {
 
     @Test
     public void test4JdbcTemplate() {
-        // 单字段查询
+        // single field select
         Integer cnt = jdbcTemplate.queryForObject(
-                "SELECT COUNT(1) FROM tst_中文也分表 WHERE id > ?",
+                "SELECT COUNT(1) FROM tst_sharding WHERE id > ?",
                 Integer.class, 1);
 
         SameName sn1 = jdbcTemplate.queryForObject(
-                "SELECT id, login_info FROM tst_中文也分表 WHERE id = ?",
+                "SELECT id, login_info FROM tst_sharding WHERE id = ?",
                 RowMapperHelper.of(SameName.class), 105L);
 
         DiffName df1 = jdbcTemplate.queryForObject(
-                "SELECT id AS uid, login_info AS str FROM tst_中文也分表 WHERE id = ?",
+                "SELECT id AS uid, login_info AS str FROM tst_sharding WHERE id = ?",
                 RowMapperHelper.of(DiffName.class), 105L);
 
         // lambda
-        DiffName df2 = jdbcTemplate.queryForObject("SELECT id, login_info FROM tst_中文也分表 WHERE id = ?",
+        DiffName df2 = jdbcTemplate.queryForObject("SELECT id, login_info FROM tst_sharding WHERE id = ?",
                 (rs, rowNum) -> {
                     DiffName a = new DiffName();
                     a.setUid(rs.getLong(1));
@@ -431,104 +427,101 @@ public class JooqMostSelectSample {
     }
 
     @Test
-    public void test5分页Jooq() {
+    public void test5PaginateJooq() {
         DSLContext dsl = dao.ctx();
-        Tst中文也分表Table t = dao.getTable();
-        Tst中文也分表Table t1 = dao.getAlias();
-        Tst中文也分表Table t2 = dao.getAlias("t2");
+        TstShardingTable t = dao.getTable();
+        TstShardingTable t1 = dao.getAlias();
+        TstShardingTable t2 = dao.getAlias("t2");
 
         //
-        testcaseNotice("使用helperJooq正常",
-                "select count(*) from `tst_中文也分表` as `t1` where `t1`.`id` >= ?",
-                "select `t1`.* from `tst_中文也分表` as `t1` where `t1`.`id` >= ? order by `id` asc limit ?");
+        testcaseNotice("use helperJooq, normal",
+                "select count(*) from `tst_sharding` as `t1` where `t1`.`id` >= ?",
+                "select `t1`.* from `tst_sharding` as `t1` where `t1`.`id` >= ? order by `id` asc limit ?");
         PageQuery page = new PageQuery().setSize(5).setPage(1).setSort("d");
         Map<String, Field<?>> order = new HashMap<>();
-        order.put("d", t.Id);
-        PageResult<Tst中文也分表> pr1 = PageJooqHelper.use(dao, page)
-                                                 .count()
-                                                 .from(t1)
-                                                 .where(t1.Id.ge(1L))
-                                                 .order(order)
-                                                 .fetch(t1.Id, t1.CommitId)
-                                                 .into(Tst中文也分表.class);
+        order.put("d", t1.Id);
+        PageResult<TstSharding> pr1 = PageJooqHelper.use(dao, page)
+                                                    .count()
+                                                    .from(t1)
+                                                    .where(t1.Id.ge(1L))
+                                                    .order(order)
+                                                    .fetch(t1.Id, t1.CommitId)
+                                                    .into(TstSharding.class);
 
-        PageResult<Tst中文也分表> pr2 = PageJooqHelper.use(dao.ctx(), page)
-                                                 .count()
-                                                 .from(t1)
-                                                 .where(t1.Id.ge(1L))
-                                                 .order(order)
-                                                 .fetch(t1.Id, t1.CommitId)
-                                                 .into(it -> {
-                                                     Tst中文也分表 po = new Tst中文也分表();
-                                                     po.setId(it.get(t1.Id));
-                                                     po.setCommitId(it.get(t1.CommitId));
-                                                     return po;
-                                                 });
+        PageResult<TstSharding> pr2 = PageJooqHelper.use(dao.ctx(), page)
+                                                    .count()
+                                                    .from(t1)
+                                                    .where(t1.Id.ge(1L))
+                                                    .order(order)
+                                                    .fetch(t1.Id, t1.CommitId)
+                                                    .into(it -> {
+                                                        TstSharding po = new TstSharding();
+                                                        po.setId(it.get(t1.Id));
+                                                        po.setCommitId(it.get(t1.CommitId));
+                                                        return po;
+                                                    });
 
-        testcaseNotice("使用helperJooq简化",
-                "缓存的total，使页面不执行count操作",
-                "select * from `tst_中文也分表` limit ?");
-        PageResult<Tst中文也分表> pr3 = PageJooqHelper.use(dao, page, 10)
-                                                 .count()
-                                                 .from(t)
-                                                 .whereTrue()
-                                                 .orderNone()
-                                                 .fetch()
-                                                 .into(Tst中文也分表.class);
+        testcaseNotice("use helperJooq, simple",
+                "cached total to ignore `select count` in db",
+                "select * from `tst_sharding` limit ?");
+        PageResult<TstSharding> pr3 = PageJooqHelper.use(dao, page, 10)
+                                                    .count()
+                                                    .from(t)
+                                                    .whereTrue()
+                                                    .orderNone()
+                                                    .fetch()
+                                                    .into(TstSharding.class);
         //
-        testcaseNotice("使用helperJooq包装",
-                "select count(*) as `c` from (select `t1`.* from `tst_中文也分表` as `t1` where `t1`.`id` >= ?) as `q`",
-                "select `t1`.* from `tst_中文也分表` as `t1` where `t1`.`id` >= ? order by `id` asc limit ?");
+        testcaseNotice("use helperJooq wrap",
+                "select count(*) as `c` from (select `t1`.* from `tst_sharding` as `t1` where `t1`.`id` >= ?) as `q`",
+                "select `t1`.* from `tst_sharding` as `t1` where `t1`.`id` >= ? order by `id` asc limit ?");
         val qry4 = dsl.select(t1.asterisk()).from(t1).where(t1.Id.ge(1L));
-        PageResult<Tst中文也分表> pr4 = PageJooqHelper.use(dao, page)
-                                                 .wrap(qry4, order)
-                                                 .fetch()
-                                                 .into(Tst中文也分表.class);
+        PageResult<TstSharding> pr4 = PageJooqHelper.use(dao, page)
+                                                    .wrap(qry4, order)
+                                                    .fetch()
+                                                    .into(TstSharding.class);
 
         val qry5 = dsl.select(t1.Id, t1.CommitId).from(t1).where(t1.Id.ge(1L));
-        PageResult<Tst中文也分表> pr5 = PageJooqHelper.use(dao, page)
-                                                 .wrap(qry5, order)
-                                                 .fetch()
-                                                 .into(it -> {
-                                                     Tst中文也分表 po = new Tst中文也分表();
-                                                     po.setId(it.get(t1.Id));
-                                                     po.setCommitId(it.get(t1.CommitId));
-                                                     return po;
-                                                 });
+        PageResult<TstSharding> pr5 = PageJooqHelper.use(dao, page)
+                                                    .wrap(qry5, order)
+                                                    .fetch()
+                                                    .into(it -> {
+                                                        TstSharding po = new TstSharding();
+                                                        po.setId(it.get(t1.Id));
+                                                        po.setCommitId(it.get(t1.CommitId));
+                                                        return po;
+                                                    });
         /////////////////////
 
-        // 包装count
-        testcaseNotice("包装count",
-                "select count(*) as `c` from (select `id` from `tst_中文也分表` where `id` > ?) as `q`",
-                "select `id` from `tst_中文也分表` where `id` > ?");
+        testcaseNotice("wrap count",
+                "select count(*) as `c` from (select `id` from `tst_sharding` where `id` > ?) as `q`",
+                "select `id` from `tst_sharding` where `id` > ?");
         SelectConditionStep<Record1<Long>> qry1 = dsl.select(t.Id).from(t).where(t.Id.gt(1L));
         SelectOrderByStep<Record1<Long>> qry = dsl.select(t.Id).from(t).where(t.Id.gt(1L)).groupBy(t.Id);
         int cnt0 = dsl.fetchCount(qry);
         int cnt00 = dsl.fetchCount(qry1);
-        List<Tst中文也分表> lst0 = qry.fetch().into(Tst中文也分表.class);
+        List<TstSharding> lst0 = qry.fetch().into(TstSharding.class);
 
-        // 单表count
-        testcaseNotice("单表count",
-                "select count(*) from `tst_中文也分表` where `id` > ?");
+        testcaseNotice("single table count",
+                "select count(*) from `tst_sharding` where `id` > ?");
         Integer cnt1 = dsl.selectCount()
                           .from(t)
                           .where(t.Id.gt(1L))
                           .fetchOptionalInto(Integer.class)
                           .orElse(0);
-        List<Tst中文也分表> lst1 = dsl.select()
-                                 .from(t)
-                                 .where(t.Id.gt(1L))
-                                 .orderBy(t.Id.asc())
-                                 .limit(0, 10)
-                                 .fetch()
-                                 .into(Tst中文也分表.class);
+        List<TstSharding> lst1 = dsl.select()
+                                    .from(t)
+                                    .where(t.Id.gt(1L))
+                                    .orderBy(t.Id.asc())
+                                    .limit(0, 10)
+                                    .fetch()
+                                    .into(TstSharding.class);
         log.info("cnt1={}", cnt1);
         log.info("lst1={}", lst1.size());
 
-        // 联表count
         // DSL.countDistinct()
-        testcaseNotice("内联count",
-                "select count(`t1`.`id`) from `tst_中文也分表` as `t1`, `tst_中文也分表` as `t2` where (`t1`.`id` = `t2`.`id` and `t1`.`id` > ?)");
+        testcaseNotice("joined table count",
+                "select count(`t1`.`id`) from `tst_sharding` as `t1`, `tst_sharding` as `t2` where (`t1`.`id` = `t2`.`id` and `t1`.`id` > ?)");
         int cnt2 = dsl.select(DSL.count(t1.Id))
                       .from(t1, t2)
                       .where(t1.Id.eq(t2.Id).and(t1.Id.gt(1L)))
@@ -536,8 +529,8 @@ public class JooqMostSelectSample {
                       .orElse(0);
         log.info("cnt2={}", cnt2);
 
-        testcaseNotice("左联查询",
-                "select count(`t1`.`id`) from `tst_中文也分表` as `t1` left outer join `tst_中文也分表` as `t2` on `t1`.`id` = `t2`.`id` where `t1`.`id` > ?");
+        testcaseNotice("left join",
+                "select count(`t1`.`id`) from `tst_sharding` as `t1` left outer join `tst_sharding` as `t2` on `t1`.`id` = `t2`.`id` where `t1`.`id` > ?");
         TableOnConditionStep<Record> jt = t1.leftJoin(t2).on(t1.Id.eq(t2.Id));
         int cnt3 = dsl.select(DSL.count(t1.Id))
                       .from(jt)
@@ -548,39 +541,39 @@ public class JooqMostSelectSample {
     }
 
     @Test
-    public void test5分页Jdbc() {
+    public void test5PaginateJdbc() {
         //
-        testcaseNotice("使用helperJdbc包装",
-                "SELECT count(*) FROM (select `t1`.* from `tst_中文也分表` as `t1` where `t1`.`id` >= ?) WINGS_WRAP",
-                "select `t1`.* from `tst_中文也分表` as `t1` where `t1`.`id` >= ? order by t1.Id ASC limit 5");
+        testcaseNotice("use helperJdbc wrap",
+                "SELECT count(*) FROM (select `t1`.* from `tst_sharding` as `t1` where `t1`.`id` >= ?) WINGS_WRAP",
+                "select `t1`.* from `tst_sharding` as `t1` where `t1`.`id` >= ? order by t1.Id ASC limit 5");
 
         PageQuery page = new PageQuery().setSize(5).setPage(1).setSort("d");
         Map<String, String> order = new HashMap<>();
         order.put("d", "t1.Id");
-        PageResult<Tst中文也分表> pr1 = PageJooqHelper.use(jdbcTemplate, page)
-                                                 .wrap("select `t1`.* from `tst_中文也分表` as `t1` where `t1`.`id` >= ?")
-                                                 .order(order)
-                                                 .bind(1L)
-                                                 .fetchInto(Tst中文也分表.class, WingsEnumConverters.Id2Language);
+        PageResult<TstSharding> pr1 = PageJooqHelper.use(jdbcTemplate, page)
+                                                    .wrap("select `t1`.* from `tst_sharding` as `t1` where `t1`.`id` >= ?")
+                                                    .order(order)
+                                                    .bind(1L)
+                                                    .fetchInto(TstSharding.class, WingsEnumConverters.Id2Language);
 
         log.info("pr1={}", pr1.getData().size());
 
-        testcaseNotice("使用helperJdbc正常",
-                "SELECT count(*) from `tst_中文也分表` where id >= ?",
-                "SELECT id,login_info,other_info from `tst_中文也分表` where id >= ? order by id limit 5");
+        testcaseNotice("use helperJdbc normal",
+                "SELECT count(*) from `tst_sharding` where id >= ?",
+                "SELECT id,login_info,other_info from `tst_sharding` where id >= ? order by id limit 5");
 
-        PageResult<Tst中文也分表> pr2 = PageJooqHelper.use(jdbcTemplate, page)
-                                                 .count("count(*)")
-                                                 .fromWhere("from `tst_中文也分表` where id >= ?")
-                                                 .order("id")
-                                                 .bind(1L)
-                                                 .fetch("id,login_info,other_info")
-                                                 .into(Tst中文也分表.class, WingsEnumConverters.Id2Language);
+        PageResult<TstSharding> pr2 = PageJooqHelper.use(jdbcTemplate, page)
+                                                    .count("count(*)")
+                                                    .fromWhere("from `tst_sharding` where id >= ?")
+                                                    .order("id")
+                                                    .bind(1L)
+                                                    .fetch("id,login_info,other_info")
+                                                    .into(TstSharding.class, WingsEnumConverters.Id2Language);
 
         log.info("pr2={}", pr2.getData().size());
     }
 
-    // 同名，自动转换
+    // Same name, auto convert
     @Data
     public static class EnumDto {
         private Long id;
@@ -589,7 +582,7 @@ public class JooqMostSelectSample {
 
     @Test
     public void test6MapperEnum() {
-        final Tst中文也分表Table t = dao.getTable();
+        final TstShardingTable t = dao.getTable();
         DataType<StandardLanguage> lang = SQLDataType.INTEGER.asConvertedDataType(JooqConsEnumConverter.of(StandardLanguage.class));
         final Field<StandardLanguage> langField = DSL.field(t.Language.getName(), lang);
         final List<EnumDto> sn = dao.ctx()
@@ -599,7 +592,7 @@ public class JooqMostSelectSample {
                                     .into(EnumDto.class);
         log.info("sn={}", sn);
 
-        // 全局注入的
+        // Global injected
         final List<EnumDto> sn2 = dao.ctx()
                                      .select(t.Id, t.Language)
                                      .from(t)
@@ -609,11 +602,11 @@ public class JooqMostSelectSample {
     }
 
     @Test
-    public void test7函数方言() {
-        testcaseNotice("通过DSL，获取特定函数，DSL特别大，各种方言函数都有的",
-                "select `id` from `tst_中文也分表` where (`modify_dt` > date_add(?, interval ? day) and substring(`other_info`, ?, ?) like ?)");
+    public void test7Function() {
+        testcaseNotice("by DSL, get function of dialect",
+                "select `id` from `tst_sharding` where (`modify_dt` > date_add(?, interval ? day) and substring(`other_info`, ?, ?) like ?)");
 
-        final Tst中文也分表Table t = dao.getTable();
+        final TstShardingTable t = dao.getTable();
         final String sql1 = dao
                 .ctx()
                 .select(t.Id)
@@ -623,8 +616,8 @@ public class JooqMostSelectSample {
                 .getSQL();
         log.info("sql1={}", sql1);
 
-        testcaseNotice("通过DSL，元组条件查询 https://www.jooq.org/doc/3.14/manual/sql-building/column-expressions/row-value-expressions/",
-                "select `id` from `tst_中文也分表` where (`id`, `login_info`) in ((?, ?), (?, ?))");
+        testcaseNotice("by DSL, query tuple https://www.jooq.org/doc/3.14/manual/sql-building/column-expressions/row-value-expressions/",
+                "select `id` from `tst_sharding` where (`id`, `login_info`) in ((?, ?), (?, ?))");
 
         final List<Row2<Long, String>> rw2 = new ArrayList<>();
         rw2.add(DSL.row(1L, "1"));

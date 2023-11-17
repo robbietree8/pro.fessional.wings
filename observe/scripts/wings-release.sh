@@ -1,26 +1,26 @@
 #!/bin/bash
-THIS_VERSION=2022-07-07
+THIS_VERSION=2023-05-25
 
 cat <<EOF
 #################################################
 # Version $THIS_VERSION # for Mac&Lin
-# 使用'ln -s'把此脚本软连接到'执行目录/workdir'，
-# 其同名'env'如（wings-release.env）会被自动载入。
-# 若PACK_JAR是目录，SUB_FLAT确定覆盖行为。
+# use 'ln -s' to link this script to the execution 'target/workdir', and,
+# the same basename '.env' (wings-release.env) will be auto loaded.
+# If PACK_JAR is directory, SUB_FLAT determines the overwrite behavior.
 #################################################
 EOF
 ################ modify the following params ################
-USER_RUN="$USER"                                   # 用来启动程序的用户
-WORK_DIR=''                                        # 工程目录，及工作目录
-DEST_DIR=''                                        # 目标列表，本地或远程目录
-PACK_JAR='*.jar'                                   # 打包产物（文件或目录）的列表
-SUB_FLAT=true                                      # 打包产物是目录时，传送内容或整个目录
-SCP_ARGS=''                                        # scp 参数项
-PRE_PACK=''                                        # pack前执行的命令
-PRE_PUSH=''                                        # push前执行的命令，支持`$_JAR`变量
-MVN_PACK='-U -Dmaven.test.skip=true clean compile package' # mvn的package命令
-JDK_HOME=''                                        # mvn的jdk版本
-WEB_PACK='build'                                   # web的package的命令
+USER_RUN="$USER"                                   # the user to execute the script
+WORK_DIR=''                                        # work dir, ie. project dir
+DEST_DIR=''                                        # target list, local or remote directory [user@]host:[path] or scp://[user@]host[:port][/path]
+PACK_JAR='*.jar'                                   # list of packaged files or directories
+SUB_FLAT=true                                      # if the target is a directory, transfer its contents or the entire directory
+SCP_ARGS=''                                        # common scp arguments
+PRE_PACK=''                                        # command to execute before `pack`
+PRE_PUSH=''                                        # command to execute before `push`, support for `$_JAR` variable
+MVN_PACK='-U -Dmaven.test.skip=true clean compile package' # mvn package
+JDK_HOME=''                                        # mvn jdk version
+WEB_PACK='build'                                   # package command of web
 
 ################ NO NEED to modify the following ################
 function check_cmd() {
@@ -89,6 +89,8 @@ function build_mvn() {
     echo -e "\033[32m ==== git status ==== \033[0m"
     rm -f "$_git_log" "$_res_log"
     git status
+    echo -e "\033[32m ==== mvn version ==== \033[0m"
+    mvn --version
 }
 
 function build_web() {
@@ -141,6 +143,11 @@ function build_web() {
             echo "skip append git hash to $_jar"
         fi
     done
+
+    echo -e "\033[32m ==== node version ==== \033[0m"
+    node --version
+    echo -e "\033[32m ==== $_cmd version ==== \033[0m"
+    $_cmd --version
 }
 
 function build_auto() {
@@ -170,7 +177,7 @@ function build_auto() {
 echo -e "\033[37;42;1mINFO: ==== boot env ==== \033[0m"
 this_file="$0"
 if [[ -L "$this_file" ]]; then
-    link_file=$(realpath $this_file)
+    link_file=$(realpath "$this_file")
     link_envs=${link_file%.*}.env
     if [[ -f "$link_envs" ]]; then
         echo "env-link=$link_envs"
@@ -211,6 +218,7 @@ case "$1" in
         git pull
         echo -e "\033[37;42;1m ==== DONE $WORK_DIR ==== \033[0m"
         git status
+        git log --pretty=format:'%H - %an, %ad %d : %s' --graph -10
         ;;
     pack)
         echo -e "\033[37;42;1m ==== BUILD $WORK_DIR ==== \033[0m"
@@ -273,7 +281,7 @@ case "$1" in
                 _tgt=$_dst
                 if [[ ! -d "$_dst" ]]; then
                     _cmd="scp -r $SCP_ARGS"
-                    # scp://[user@]host[:port][/path]
+                    # [user@]host:[path] scp://[user@]host[:port][/path]
                     if [[ $_dst =~ scp:// && "$(man scp | grep scp://)" == "" ]]; then
                         pt=$(echo "$_dst" | sed -E 's=scp://([^:]*:)([0-9]*)(.*)=\2=')
                         if [[ $pt =~ ^[0-9]+$ ]]; then

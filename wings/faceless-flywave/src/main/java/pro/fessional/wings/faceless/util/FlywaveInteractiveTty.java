@@ -8,6 +8,7 @@ import java.util.function.Function;
  * @author trydofor
  * @since 2020-07-07
  */
+@SuppressWarnings("CanBeFinal")
 public class FlywaveInteractiveTty {
 
     public static Function<String, Boolean> askYes = it -> true;
@@ -21,10 +22,10 @@ public class FlywaveInteractiveTty {
             System.out.print("=== 😺😸😹😻😼😽🙀 continue or not ? [y|n]>");
             while (scanner.hasNext()) {
                 String ans = scanner.next();
-                if (ans.equalsIgnoreCase("y")) {
+                if ("y".equalsIgnoreCase(ans)) {
                     return true;
                 }
-                else if (ans.equalsIgnoreCase("n")) {
+                else if ("n".equalsIgnoreCase(ans)) {
                     return false;
                 }
             }

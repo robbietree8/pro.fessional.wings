@@ -24,8 +24,8 @@ import static pro.fessional.wings.slardar.httprest.RestTemplateHelper.NopErrorHa
 @Slf4j
 class AccessDeny401Test {
 
-    @Setter(onMethod_ = {@Value("${local.server.port}")})
-    private int port;
+    @Setter(onMethod_ = {@Value("http://localhost:${local.server.port}")})
+    private String host;
 
     final RestTemplate tmpl = new RestTemplateBuilder()
             .errorHandler(NopErrorHandler)
@@ -33,7 +33,7 @@ class AccessDeny401Test {
 
     @Test
     public void test401Form() {
-        final String url = "http://localhost:" + port + "/user/authed-user.json";
+        final String url = host + "/user/authed-user.json";
         RequestEntity<?> entity = RequestEntity
                 .post(url)
                 .accept(MediaType.TEXT_HTML)
@@ -41,13 +41,14 @@ class AccessDeny401Test {
         final ResponseEntity<String> res = tmpl.exchange(entity, String.class);
 
         final String body = res.getBody();
-        Assertions.assertEquals(401, res.getStatusCodeValue());
+        log.info("test401Form, body={}", body);
+        Assertions.assertEquals(401, res.getStatusCode().value());
         Assertions.assertNotNull(body);
         Assertions.assertTrue(body.contains("success"));
     }
     @Test
     public void test401Basic() {
-        final String url = "http://localhost:" + port + "/user/authed-user.json";
+        final String url = host + "/user/authed-user.json";
         RequestEntity<?> entity = RequestEntity
                 .post(url)
                 .accept(MediaType.APPLICATION_JSON)
@@ -56,7 +57,8 @@ class AccessDeny401Test {
         final ResponseEntity<String> res = tmpl.exchange(entity, String.class);
 
         final String body = res.getBody();
-        Assertions.assertEquals(401, res.getStatusCodeValue());
+        log.info("test401Basic, body={}", body);
+        Assertions.assertEquals(401, res.getStatusCode().value());
         Assertions.assertNull(body);
     }
 }

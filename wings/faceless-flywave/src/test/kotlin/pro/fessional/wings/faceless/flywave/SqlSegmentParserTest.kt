@@ -21,8 +21,8 @@ class SqlSegmentParserTest {
     lateinit var sqlStatementParser: SqlStatementParser
 
     @Test
-    @Disabled
-    fun `test1🦁分析🦁人脑分析`() {
+    @Disabled("Use for debugging in case of parsing problems")
+    fun test1ManualCheck() {
         val scan = FlywaveRevisionScanner.scanMaster()
         for ((k, v) in scan) {
             val undo = sqlSegmentProcessor.parse(sqlStatementParser, v.undoText)
@@ -53,7 +53,7 @@ class SqlSegmentParserTest {
     }
 
     @Test
-    fun `test2🦁改名🦁影子表`() {
+    fun test2RenameShadow() {
         val segs = sqlSegmentProcessor.parse(sqlStatementParser, "ALTER TABLE `table_a` RENAME TO `table_b`")
         val segment = segs[0]
         val tbls = segment.applyTbl(listOf("table_a", "table_a__"))

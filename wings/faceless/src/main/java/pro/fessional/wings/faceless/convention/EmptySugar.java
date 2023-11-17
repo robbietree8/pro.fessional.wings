@@ -4,8 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.function.Consumer;
 
 /**
+ * `isXxx` for exact comparison, `asXxx` for range comparison
+ *
  * @author trydofor
  * @since 2019-05-13
  */
@@ -76,22 +79,28 @@ public class EmptySugar {
         return v == null || (v.compareTo(EmptyValue.DECIMAL_AS_MIN) > 0 && v.compareTo(EmptyValue.DECIMAL_AS_MAX) < 0);
     }
 
+    /**
+     * Consider time zone, ±24H
+     */
     public static boolean asEmptyValue(LocalDate v) {
         return v == null ||
-                (v.getYear() == EmptyValue.DATE.getYear()
-                        && v.getMonth() == EmptyValue.DATE.getMonth()
-                        && v.getDayOfMonth() == EmptyValue.DATE.getDayOfMonth());
-    }
-
-    public static boolean asEmptyValue(LocalTime v) {
-        return v == null ||
-                (v.getHour() == EmptyValue.TIME.getHour()
-                        && v.getMinute() == EmptyValue.TIME.getMinute()
-                        && v.getSecond() == EmptyValue.TIME.getSecond());
+               EmptyValue.DATE.equals(v) ||
+               EmptyValue.DATE_AS_MIN.equals(v) ||
+               EmptyValue.DATE_AS_MAX.equals(v);
     }
 
     /**
-     * 仅比较日期，不比较时间
+     * Compare hour, minute and second only, without the time below the second
+     */
+    public static boolean asEmptyValue(LocalTime v) {
+        return v == null ||
+               (v.getHour() == EmptyValue.TIME.getHour()
+                && v.getMinute() == EmptyValue.TIME.getMinute()
+                && v.getSecond() == EmptyValue.TIME.getSecond());
+    }
+
+    /**
+     * Compare date only, without time
      */
     public static boolean asEmptyValue(LocalDateTime v) {
         return v == null || asEmptyValue(v.toLocalDate());
@@ -181,5 +190,41 @@ public class EmptySugar {
 
     public static Boolean emptyToNull(Boolean v) {
         return nullToTrue(v) ? null : v;
+    }
+
+    public static void ifNotAsEmpty(String v, Consumer<String> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(Integer v, Consumer<Integer> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(Long v, Consumer<Long> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(Double v, Consumer<Double> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(Float v, Consumer<Float> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(BigDecimal v, Consumer<BigDecimal> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(LocalDate v, Consumer<LocalDate> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(LocalTime v, Consumer<LocalTime> con) {
+        if (!asEmptyValue(v)) con.accept(v);
+    }
+
+    public static void ifNotAsEmpty(LocalDateTime v, Consumer<LocalDateTime> con) {
+        if (!asEmptyValue(v)) con.accept(v);
     }
 }

@@ -41,22 +41,37 @@ public class SlardarSwaggerProp {
     public static final String Key$description = Key + ".description";
 
     /**
+     * need enable build info
+     *
      * @see #Key$version
      */
     private String version = "";
     public static final String Key$version = Key + ".version";
 
     /**
+     * key in java naming rule, used as `$ref`,
+     * `in` support `cookie`|`header`|`query`|`path`.
+     *
      * @see #Key$param
      */
     private Map<String, EnabledParameter> param = new HashMap<>();
     public static final String Key$param = Key + ".param";
 
     /**
+     * copy Accept/MediaType to make multiple requests.
+     *
      * @see #Key$accept
      */
     private Map<String, String> accept = new HashMap<>();
     public static final String Key$accept = Key + ".accept";
+
+    /**
+     * whether to flatten the PageQuery, as querystring parameter.
+     *
+     * @see #Key$flatPagequery
+     */
+    private boolean flatPagequery = true;
+    public static final String Key$flatPagequery = Key + ".flat-pagequery";
 
     public List<Parameter> toRefPara() {
         List<Parameter> result = new ArrayList<>();

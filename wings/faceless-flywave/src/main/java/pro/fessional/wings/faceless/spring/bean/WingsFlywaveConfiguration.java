@@ -3,7 +3,7 @@ package pro.fessional.wings.faceless.spring.bean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +24,8 @@ import pro.fessional.wings.faceless.spring.prop.FlywaveEnabledProp;
 import pro.fessional.wings.faceless.spring.prop.FlywaveFitProp;
 import pro.fessional.wings.faceless.spring.prop.FlywaveSqlProp;
 import pro.fessional.wings.faceless.spring.prop.FlywaveVerProp;
+import pro.fessional.wings.silencer.runner.ApplicationRunnerOrdered;
+import pro.fessional.wings.spring.consts.OrderedFacelessConst;
 
 import java.util.TreeSet;
 
@@ -36,6 +38,7 @@ import static pro.fessional.wings.faceless.flywave.SchemaJournalManager.JournalD
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(name = "pro.fessional.wings.faceless.database.DataSourceContext")
 @ConditionalOnProperty(name = FlywaveEnabledProp.Key$module, havingValue = "true")
+@AutoConfigureOrder(OrderedFacelessConst.FlywaveConfiguration)
 public class WingsFlywaveConfiguration {
 
     private static final Log log = LogFactory.getLog(WingsFlywaveConfiguration.class);
@@ -57,7 +60,7 @@ public class WingsFlywaveConfiguration {
                 properties.getTriggerDelete()
         );
         log.info("FacelessFlywave spring-bean schemaJournalManager");
-        return new SchemaJournalManager(facelessDs.getPlains(), statementParser, schemaDefinitionLoader, ddl, properties.getSchemaJournalTable());
+        return new SchemaJournalManager(facelessDs.getBackends(), statementParser, schemaDefinitionLoader, ddl, properties.getSchemaJournalTable());
     }
 
     @Bean
@@ -69,7 +72,7 @@ public class WingsFlywaveConfiguration {
             SchemaDefinitionLoader schemaDefinitionLoader,
             FlywaveVerProp properties) {
         DefaultRevisionManager bean = new DefaultRevisionManager(
-                sources.getPlains(), sources.getSharding(),
+                sources.getBackends(), sources.getCurrent(),
                 statementParser, segmentProcessor, schemaDefinitionLoader,
                 properties.getSchemaVersionTable());
         for (String s : new TreeSet<>(properties.getDropReg().values())) {
@@ -88,7 +91,7 @@ public class WingsFlywaveConfiguration {
             SqlStatementParser statementParser,
             SchemaDefinitionLoader schemaDefinitionLoader) {
         log.info("FacelessFlywave spring-bean schemaShardingManager");
-        return new SchemaShardingManager(sources.getPlains(), sources.getSharding(),
+        return new SchemaShardingManager(sources.getBackends(), sources.getCurrent(),
                 statementParser, schemaDefinitionLoader);
     }
 
@@ -148,12 +151,13 @@ public class WingsFlywaveConfiguration {
 
     @Bean
     @ConditionalOnProperty(name = FlywaveEnabledProp.Key$checker, havingValue = "true")
-    public CommandLineRunner runnerRevisionChecker(DefaultRevisionManager manager, FlywaveFitProp prop) {
+    public ApplicationRunnerOrdered runnerRevisionChecker(DefaultRevisionManager manager, FlywaveFitProp prop) {
         log.info("FacelessFlywave spring-runs runnerRevisionChecker");
-        return args -> {
+        return new ApplicationRunnerOrdered(OrderedFacelessConst.RunnerRevisionChecker, ignored -> {
+            log.info("FacelessFlywave check RevisionFitness");
             final RevisionFitness fits = new RevisionFitness();
             fits.addFits(prop.getFit());
-            fits.checkRevision(manager);
-        };
+            fits.checkRevision(manager, prop.isAutoInit());
+        });
     }
 }

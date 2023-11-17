@@ -27,7 +27,7 @@ public class PageQueryArgumentResolver implements HandlerMethodArgumentResolver 
     private String[] sortAlias = Null.StrArr;
 
     /**
-     * 精确匹配PageQuery，避免污染子类
+     * Exactly match PageQuery to avoid pollution of subclasses
      *
      * @param parameter MethodParameter
      * @return supports
@@ -67,7 +67,7 @@ public class PageQueryArgumentResolver implements HandlerMethodArgumentResolver 
     private String getParameter(String df, NativeWebRequest rq, String[] al) {
         for (String s : al) {
             final String p = rq.getParameter(s);
-            if (p != null && p.length() > 0) {
+            if (p != null && !p.isEmpty()) {
                 return p;
             }
         }
@@ -77,7 +77,7 @@ public class PageQueryArgumentResolver implements HandlerMethodArgumentResolver 
     private int getParameter(int df, NativeWebRequest rq, String[] al) {
         for (String s : al) {
             final String p = rq.getParameter(s);
-            if (p != null && p.length() > 0) {
+            if (p != null && !p.isEmpty()) {
                 try {
                     return Integer.parseInt(p);
                 } catch (NumberFormatException e) {

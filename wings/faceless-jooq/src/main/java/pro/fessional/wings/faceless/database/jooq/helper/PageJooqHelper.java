@@ -49,19 +49,21 @@ import pro.fessional.wings.faceless.database.helper.PageJdbcHelper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 提供基于jdbc和jooq的分页查询工具。
  * <pre>
- * total < 0，DB执行count和select
- * total = 0，DB不count，不select
- * total > 0，DB不count，但select
+ * Pagination Util for jdbc and jooq.
+ *
+ * * total < 0 - run count, run select
+ * * total = 0 - no count, no select
+ * * total > 0 - no count, run select
  * </pre>
  *
  * @author trydofor
- * @link https://blog.jooq.org/2019/09/19/whats-faster-count-or-count1/
+ * @link <a href="https://blog.jooq.org/2019/09/19/whats-faster-count-or-count1/">whats-faster-count-or-count1</a>
  * @since 2020-09-30
  */
 public class PageJooqHelper extends PageJdbcHelper {
@@ -72,13 +74,15 @@ public class PageJooqHelper extends PageJdbcHelper {
     }
 
     /**
+     * Page query by jooq
+     *
      * @param dao   jooq Dao
-     * @param page  页
-     * @param total service层缓存的count计数
+     * @param page  query info
+     * @param total the count cached in service level
      * @param <R>   Record
      * @param <P>   pojo
-     * @param <K>   主键
-     * @return 结果
+     * @param <K>   pk
+     * @return step
      */
     @NotNull
     public static <R extends UpdatableRecord<R>, P, K> CountJooq<R> use(DAOImpl<R, P, K> dao, PageQuery page, int total) {
@@ -91,12 +95,12 @@ public class PageJooqHelper extends PageJdbcHelper {
     }
 
     /**
-     * 分页查询
+     * Page query by jooq
      *
      * @param dsl   dsl
-     * @param page  页
-     * @param total service层缓存的count计数
-     * @return 结果
+     * @param page  query info
+     * @param total the count cached in service level
+     * @return step
      */
     @NotNull
     public static <R extends Record> CountJooq<R> use(DSLContext dsl, PageQuery page, int total) {
@@ -122,17 +126,29 @@ public class PageJooqHelper extends PageJdbcHelper {
         private Result<R> result;
         private int total = -1;
 
-        //
-        private void orderBy(OrderField<?>... bys) {
-            if (bys != null && bys.length > 0) {
-                order = Arrays.asList(bys);
-            }
-        }
+        /**
+         * `PageQuery.sort` as the primary, `bys` as the mapping, and `dft` as the default
+         */
+        private void orderBy(Map<String, ? extends Field<?>> bys, OrderField<?>... dft) {
+            final List<PageUtil.By> srt = PageUtil.sort(page.getSort());
 
-        private void orderBy(Map<String, Field<?>> bys) {
-            if (bys != null && bys.size() > 0) {
-                order = new ArrayList<>();
-                for (PageUtil.By by : PageUtil.sort(page.getSort())) {
+            if (srt.isEmpty()) {
+                order = Arrays.asList(dft);
+            }
+            else {
+                order = new ArrayList<>(Math.max(dft.length, bys.size()));
+                if (dft.length > 0) {
+                    bys = new HashMap<>(bys);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Field<?>> wtm = (Map<String, Field<?>>) bys;
+                    for (OrderField<?> s : dft) {
+                        if (s instanceof Field<?> f) {
+                            wtm.putIfAbsent(f.getName(), f);
+                        }
+                    }
+                }
+
+                for (PageUtil.By by : srt) {
                     Field<?> fd = bys.get(by.key);
                     if (fd != null) {
                         order.add(by.asc ? fd.asc() : fd.desc());
@@ -147,7 +163,7 @@ public class PageJooqHelper extends PageJdbcHelper {
         private final ContextJooq<R> context;
 
         /**
-         * https://blog.jooq.org/2019/09/19/whats-faster-count-or-count1/
+         * <a href="https://blog.jooq.org/2019/09/19/whats-faster-count-or-count1/">whats-faster-count-or-count1</a>
          */
         public FromJooq<R> count() {
             context.count = DSL.count();
@@ -175,15 +191,15 @@ public class PageJooqHelper extends PageJdbcHelper {
         public <S extends Record> WrapJooq<S> wrap(SelectOrderByStep<S> select, OrderField<?>... bys) {
             ContextJooq<S> ctx = (ContextJooq<S>) context;
             ctx.wrap = select;
-            ctx.orderBy(bys);
+            ctx.orderBy(Collections.emptyMap(), bys);
             return new WrapJooq<>(ctx);
         }
 
         @SuppressWarnings("unchecked")
-        public <S extends Record> WrapJooq<S> wrap(SelectOrderByStep<S> select, Map<String, Field<?>> bys) {
+        public <S extends Record> WrapJooq<S> wrap(SelectOrderByStep<S> select, Map<String, Field<?>> bys, OrderField<?>... dft) {
             ContextJooq<S> ctx = (ContextJooq<S>) context;
             ctx.wrap = select;
-            ctx.orderBy(bys);
+            ctx.orderBy(bys, dft);
             return new WrapJooq<>(ctx);
         }
     }
@@ -221,13 +237,19 @@ public class PageJooqHelper extends PageJdbcHelper {
             return new FetchJooq<>(context);
         }
 
+        /**
+         * Specify a field or sort statement that is equivalent to the field to field mapping.
+         */
         public FetchJooq<R> order(OrderField<?>... bys) {
-            context.orderBy(bys);
+            context.orderBy(Collections.emptyMap(), bys);
             return new FetchJooq<>(context);
         }
 
-        public FetchJooq<R> order(Map<String, Field<?>> bys) {
-            context.orderBy(bys);
+        /**
+         * Based on the mapping of alias to filed, use PageQuery's sort to match the ordering
+         */
+        public FetchJooq<R> order(Map<String, Field<?>> bys, OrderField<?>... dft) {
+            context.orderBy(bys, dft);
             return new FetchJooq<>(context);
         }
     }
@@ -462,9 +484,9 @@ public class PageJooqHelper extends PageJdbcHelper {
 
             if (context.total > 0) {
                 context.result = context.wrap
-                                         .orderBy(context.order)
-                                         .limit(context.page.toOffset(), context.page.getSize())
-                                         .fetch();
+                        .orderBy(context.order)
+                        .limit(context.page.toOffset(), context.page.getSize())
+                        .fetch();
             }
             return new IntoJooq<>(context);
         }

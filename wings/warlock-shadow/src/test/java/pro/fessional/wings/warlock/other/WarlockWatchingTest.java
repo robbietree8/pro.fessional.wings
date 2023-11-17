@@ -29,29 +29,27 @@ import pro.fessional.wings.warlock.service.watching.WatchingService;
 @Slf4j
 public class WarlockWatchingTest {
 
-    @Setter(onMethod_ = {@Value("${local.server.port}")})
-    private int port;
+    @Setter(onMethod_ = {@Value("http://localhost:${local.server.port}")})
+    private String host;
 
     @Setter(onMethod_ = {@Autowired})
     private OkHttpClient okHttpClient;
 
-
     /**
-     * 查看日志输出
+     * Check the log
      */
     @Test
     public void testWatching() {
-        final StopWatch.Watch watch = Watches.acquire().start("testWatching");
-        final String host = "http://localhost:" + port;
+        final StopWatch.Watch watch = Watches.acquire("testWatching");
         final Request.Builder body = new Request.Builder().url(host + "/test/watching.json");
         final Response r1 = OkHttpClientHelper.execute(okHttpClient, body, false);
         Assertions.assertEquals(200, r1.code());
         watch.close();
         final boolean del = Watches.release(false, "testWatching");
-        Assertions.assertEquals(1, watch.owner.getWatches().size());
+        Assertions.assertEquals(2, watch.owner.getWatches().size());
         Assertions.assertTrue(del);
-
+        // async in async task pool
         Assertions.assertTrue(2 <= WatchingService.AsyncWatch.size());
-        Assertions.assertTrue(WatchingService.WatchOwner.getWatches().isEmpty());
+        Assertions.assertTrue(WatchingService.WatchOwner.getWatches().isEmpty(),"Need init database via BootDatabaseTest");
     }
 }
