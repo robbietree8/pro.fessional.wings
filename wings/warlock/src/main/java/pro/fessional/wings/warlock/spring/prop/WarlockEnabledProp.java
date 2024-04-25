@@ -2,7 +2,7 @@ package pro.fessional.wings.warlock.spring.prop;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import pro.fessional.wings.silencer.spring.boot.WingsEnabledCondition;
+import pro.fessional.wings.silencer.spring.boot.WingsEnabledContext;
 
 /**
  * wings-enabled-79.properties
@@ -15,7 +15,7 @@ import pro.fessional.wings.silencer.spring.boot.WingsEnabledCondition;
 @ConfigurationProperties(WarlockEnabledProp.Key)
 public class WarlockEnabledProp {
 
-    public static final String Key = WingsEnabledCondition.Prefix + ".warlock";
+    public static final String Key = WingsEnabledContext.PrefixEnabled + ".warlock";
 
     /**
      * whether to enable timing watching and analysis.
@@ -35,7 +35,7 @@ public class WarlockEnabledProp {
     public static final String Key$secCheckUrl = Key + ".sec-check-url";
 
     /**
-     * whether to enable Web auto config, eg. firewall, debug, etc.
+     * whether to enable Web auto config, e.g. firewall, debug, etc.
      *
      * @see #Key$secWebAuto
      */

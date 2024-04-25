@@ -25,12 +25,12 @@ class DataSourceContextTest {
 
     @Test
     @TmsLink("C12004")
-    void test() {
+    void dbctxBackend() {
         assertNotNull(sourceContext);
         final DataSource primary = sourceContext.getCurrent();
         assertNotNull(primary);
-        final Map<String, DataSource> plains = sourceContext.getBackends();
-        assertEquals(1, plains.size());
-        assertTrue(plains.containsValue(primary));
+        final Map<String, DataSource> backends = sourceContext.getBackends();
+        assertEquals(1, backends.size());
+        assertTrue(backends.containsValue(primary));
     }
 }

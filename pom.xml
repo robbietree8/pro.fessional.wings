@@ -6,13 +6,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.12</version> <!-- https://github.com/spring-projects/spring-boot/releases -->
+        <version>3.2.2</version> <!-- https://github.com/spring-projects/spring-boot/releases -->
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
     <groupId>pro.fessional.wings</groupId>
     <artifactId>ancient</artifactId>
-    <version>${revision}.${changelist}</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>Ancient::</name>
@@ -20,72 +20,104 @@
     <url>https://wings.fessional.pro</url>
 
     <properties>
-        <!-- https://github.com/spring-projects/spring-boot/releases -->
-        <revision>3.0.12</revision>
         <!-- https://maven.apache.org/maven-ci-friendly.html -->
-        <changelist>300-SNAPSHOT</changelist>
-        <!-- https://docs.spring.io/spring-boot/docs/3.0.3/reference/html/dependency-versions.html -->
-        <spring-boot.version>${revision}</spring-boot.version>
-        <wings.version>${revision}.${changelist}</wings.version>
+        <revision>3.2.111-SNAPSHOT</revision>
+        <!-- https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html -->
+        <spring-boot.version>3.2.2</spring-boot.version>
+        <!--  -->
+        <wings.version>${revision}</wings.version>
+        <!--suppress UnresolvedMavenProperty fulfill by directory-maven-plugin -->
+        <wings.rootdir>${highest-basedir}</wings.rootdir>
         <!-- project -->
-        <java.version>17</java.version>
-        <!-- <kotlin.version>1.7.22</kotlin.version> -->
+        <java.version>21</java.version>
+        <!-- <kotlin.version>1.9.21</kotlin.version> -->
         <!-- mvn boot -->
-        <maven.test.skip>false</maven.test.skip>
-        <maven.deploy.skip>false</maven.deploy.skip>
-        <maven.install.skip>false</maven.install.skip>
-        <spring-boot.repackage.skip>false</spring-boot.repackage.skip>
+        <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
         <spring-boot.repackage.executable>false</spring-boot.repackage.executable>
-        <gpg.skip>true</gpg.skip>
+        <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
         <!-- common quality checker: jetbrains/findbugs-jsr305(guava)/errorprone(guava) -->
-        <annotations.version>24.0.1</annotations.version> <!-- https://github.com/JetBrains/java-annotations/releases -->
+        <annotations.version>24.1.0</annotations.version> <!-- https://github.com/JetBrains/java-annotations/releases -->
         <!-- common utils-->
         <mapstruct.version>1.5.5.Final</mapstruct.version> <!-- https://github.com/mapstruct/mapstruct/releases -->
-        <guava.version>32.1.3-jre</guava.version> <!-- https://github.com/google/guava/releases/ -->
-        <commons-io.version>2.14.0</commons-io.version> <!-- https://commons.apache.org/proper/commons-io/ -->
+        <guava.version>33.0.0-jre</guava.version> <!-- https://github.com/google/guava/releases/ -->
+        <commons-io.version>2.15.1</commons-io.version> <!-- https://commons.apache.org/proper/commons-io/ -->
         <commons-collections4.version>4.4</commons-collections4.version> <!-- https://commons.apache.org/proper/commons-collections/ -->
-        <commons-text.version>1.10.0</commons-text.version> <!-- https://commons.apache.org/proper/commons-text/ -->
+        <commons-text.version>1.11.0</commons-text.version> <!-- https://commons.apache.org/proper/commons-text/ -->
         <joda-convert.version>2.2.3</joda-convert.version> <!-- https://github.com/JodaOrg/joda-convert/releases -->
         <!-- wings project -->
-        <mirana.version>2.6.4-SNAPSHOT</mirana.version> <!-- https://github.com/trydofor/pro.fessional.mirana -->
-        <meepo.version>1.4.14-SNAPSHOT</meepo.version> <!-- https://github.com/trydofor/pro.fessional.meepo -->
-        <shardingsphere.version>5.3.2</shardingsphere.version> <!-- https://github.com/apache/shardingsphere/releases -->
+        <mirana.version>2.7.2</mirana.version> <!-- https://github.com/trydofor/pro.fessional.mirana -->
+        <meepo.version>1.5.1</meepo.version> <!-- https://github.com/trydofor/pro.fessional.meepo -->
         <kaptcha.version>2.3.3</kaptcha.version> <!-- https://github.com/trydofor/kaptcha -->
-        <fastjson2.version>2.0.41</fastjson2.version> <!-- https://github.com/alibaba/fastjson2/releases -->
+        <fastjson2.version>2.0.47</fastjson2.version> <!-- https://github.com/alibaba/fastjson2/releases -->
         <fastjson.version>${fastjson2.version}</fastjson.version> <!-- https://github.com/alibaba/fastjson/releases -->
-        <kryo.version>5.5.0</kryo.version> <!-- https://github.com/EsotericSoftware/kryo/releases -->
-        <transmittable.version>2.14.3</transmittable.version> <!-- https://github.com/alibaba/transmittable-thread-local/releases -->
-        <bouncycastle.version>1.76</bouncycastle.version> <!-- https://bouncycastle.org/releasenotes.html -->
-        <justauth.version>1.16.5</justauth.version> <!-- https://github.com/justauth/JustAuth/releases -->
+        <kryo.version>5.6.0</kryo.version> <!-- https://github.com/EsotericSoftware/kryo/releases -->
+        <transmittable.version>2.14.5</transmittable.version> <!-- https://github.com/alibaba/transmittable-thread-local/releases -->
+        <bouncycastle.version>1.77</bouncycastle.version> <!-- https://bouncycastle.org/releasenotes.html -->
+        <justauth.version>1.16.6</justauth.version> <!-- https://github.com/justauth/JustAuth/releases -->
+        <!-- sharding jdbc -->
+        <shardingsphere.version>5.4.1</shardingsphere.version> <!-- https://github.com/apache/shardingsphere/releases -->
         <!-- servicecomb -->
-        <servicecomb.version>2.8.8</servicecomb.version> <!-- https://github.com/apache/servicecomb-java-chassis/releases -->
+        <servicecomb.version>3.0.2</servicecomb.version> <!-- https://github.com/apache/servicecomb-java-chassis/releases -->
         <!-- others -->
-        <springdoc.version>2.1.0</springdoc.version> <!-- https://github.com/springdoc/springdoc-openapi/releases -->
-        <boot-admin.version>3.0.4</boot-admin.version> <!-- https://github.com/codecentric/spring-boot-admin/releases -->
-        <sentry.version>6.23.0</sentry.version> <!-- https://github.com/getsentry/sentry-java/releases buildSrc/src/main/java/Config.kt -->
+        <springdoc.version>2.3.0</springdoc.version> <!-- https://github.com/springdoc/springdoc-openapi/releases -->
+        <boot-admin.version>3.2.2</boot-admin.version> <!-- https://github.com/codecentric/spring-boot-admin/releases -->
+        <sentry.version>7.4.0</sentry.version> <!-- https://github.com/getsentry/sentry-java/releases buildSrc/src/main/java/Config.kt -->
         <retrofit.version>2.9.0</retrofit.version> <!-- https://github.com/square/retrofit/tags -->
-        <allure.version>2.24.0</allure.version> <!-- https://github.com/allure-framework/allure-java/releases -->
+        <allure.version>2.25.0</allure.version> <!-- https://github.com/allure-framework/allure-java/releases -->
+        <druid.version>1.2.21</druid.version> <!-- https://github.com/alibaba/druid/releases -->
         <!-- mvn-build-plugin -->
-        <flatten-maven-plugin.version>1.3.0</flatten-maven-plugin.version> <!-- https://github.com/mojohaus/flatten-maven-plugin/releases/tag -->
-        <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version> <!-- https://github.com/apache/maven-gpg-plugin/tags -->
-        <testing-json>{}</testing-json>
-        <wings.java-opens>
-            --add-modules=java.se <!-- Hazelcast -->
-            --add-opens=java.base/java.io=ALL-UNNAMED <!-- FastJson -->
-            --add-opens=java.base/java.lang.invoke=ALL-UNNAMED <!-- FastJson2 -->
-            --add-opens=java.base/java.lang=ALL-UNNAMED <!-- Hazelcast -->
-            --add-opens=java.base/java.net=ALL-UNNAMED <!-- Gson -->
-            --add-opens=java.base/java.nio=ALL-UNNAMED <!-- Hazelcast -->
-            --add-opens=java.base/java.util=ALL-UNNAMED <!-- Boot Collections$EmptySet -->
-            --add-opens=java.base/jdk.internal.ref=ALL-UNNAMED <!-- Hazelcast -->
-            --add-opens=java.base/sun.nio.ch=ALL-UNNAMED <!-- Hazelcast -->
-            --add-opens=java.base/sun.security.x509=ALL-UNNAMED <!-- Boot -->
-            --add-opens=java.management/sun.management=ALL-UNNAMED <!-- Hazelcast -->
-            --add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED <!-- Boot -->
-            --add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED <!-- Boot -->
-            --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED <!-- Hazelcast -->
-            --add-opens=jdk.unsupported/sun.misc=ALL-UNNAMED <!-- Boot -->
-        </wings.java-opens>
+        <flatten-maven-plugin.version>1.6.0</flatten-maven-plugin.version> <!-- https://github.com/mojohaus/flatten-maven-plugin/releases -->
+        <directory-maven-plugin.version>1.0</directory-maven-plugin.version> <!-- https://github.com/jdcasey/directory-maven-plugin -->
+        <maven-gpg-plugin.version>3.1.0</maven-gpg-plugin.version> <!-- https://github.com/apache/maven-gpg-plugin/tags -->
+        <nexus-staging-plugin.version>1.6.13</nexus-staging-plugin.version> <!-- https://github.com/sonatype/nexus-maven-plugins/tree/main/staging/maven-plugin -->
+        <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version> <!-- https://github.com/hazendaz/coveralls-maven-plugin -->
+        <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version> <!-- https://www.jacoco.org/jacoco/trunk/doc/maven.html -->
+        <dokka-maven-plugin.version>1.9.10</dokka-maven-plugin.version> <!-- https://kotlinlang.org/docs/dokka-maven.html#general-configuration -->
+        <lombok-maven-plugin.version>1.18.20.0</lombok-maven-plugin.version> <!-- https://github.com/awhitford/lombok.maven -->
+        <exec-maven-plugin.version>3.2.0</exec-maven-plugin.version> <!-- https://github.com/mojohaus/exec-maven-plugin/releases -->
+        <jib-maven-plugin.version>3.4.1</jib-maven-plugin.version> <!-- https://github.com/GoogleContainerTools/jib/releases -->
+        <jib-layer-filter.version>0.3.0</jib-layer-filter.version> <!-- https://github.com/GoogleContainerTools/jib-extensions/blob/master/first-party/jib-layer-filter-extension-maven/README.md -->
+        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version> <!-- https://maven.apache.org/enforcer/maven-enforcer-plugin/ -->
+        <versions-maven-plugin.version>2.16.2</versions-maven-plugin.version> <!-- https://www.mojohaus.org/versions/versions-maven-plugin -->
+        <!-- java, kotlin sources  -->
+        <source.srcMainJava>${project.basedir}/src/main/java</source.srcMainJava>
+        <source.srcMainJavaGen>${project.basedir}/src/main/java-gen</source.srcMainJavaGen>
+        <source.srcMainKotlin>${project.basedir}/src/main/kotlin</source.srcMainKotlin>
+        <source.srcMainKotlinGen>${project.basedir}/src/main/kotlin-gen</source.srcMainKotlinGen>
+        <source.srcTestJava>${project.basedir}/src/test/java</source.srcTestJava>
+        <source.srcTestKotlin>${project.basedir}/src/test/kotlin</source.srcTestKotlin>
+        <!-- delombok: javadoc cannot find symbol  -->
+        <source.srcMainMixed>${project.build.directory}/main-mixed</source.srcMainMixed>
+        <source.srcMainDelombok>${project.build.directory}/main-delombok</source.srcMainDelombok>
+        <!-- test,doc,deploy -->
+        <argLine>-Xmx2g @{javaopenArgLine} --add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED --add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</argLine> <!-- surefire and jacoco -->
+        <javaopenArgLine><!-- trim indent
+            -->--add-modules=java.se <!-- Hazelcast
+            -->--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED <!-- Hazelcast
+            -->--add-opens=java.base/java.io=ALL-UNNAMED <!-- FastJson
+            -->--add-opens=java.base/java.lang.invoke=ALL-UNNAMED <!-- FastJson2
+            -->--add-opens=java.base/java.lang=ALL-UNNAMED <!-- Hazelcast
+            -->--add-opens=java.base/java.net=ALL-UNNAMED <!-- Gson
+            -->--add-opens=java.base/java.nio=ALL-UNNAMED <!-- Hazelcast
+            -->--add-opens=java.base/java.util=ALL-UNNAMED <!-- Boot Collections$EmptySet
+            -->--add-opens=java.base/jdk.internal.ref=ALL-UNNAMED <!-- Hazelcast
+            -->--add-opens=java.base/sun.nio.ch=ALL-UNNAMED <!-- Hazelcast
+            -->--add-opens=java.base/sun.security.x509=ALL-UNNAMED <!-- Boot
+            -->--add-opens=java.management/sun.management=ALL-UNNAMED <!-- Hazelcast
+            -->--add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED <!-- Hazelcast
+            -->--add-opens=jdk.unsupported/sun.misc=ALL-UNNAMED <!-- Boot
+            --></javaopenArgLine>
+        <!-- docker -->
+        <docker.from.prefix><!-- docker:// --></docker.from.prefix>
+        <docker.to.prefix><!-- registry://docker.io/fessional/ --></docker.to.prefix>
+        <docker.image.app-root>/app</docker.image.app-root>
+        <docker.image.app-conf>${docker.image.app-root}/conf</docker.image.app-conf>
+        <docker.image.app-data>${docker.image.app-root}/data</docker.image.app-data>
+        <docker.image.app-logs>${docker.image.app-root}/logs</docker.image.app-logs>
+        <docker.image.app-port>8080</docker.image.app-port>
+        <docker.image.app-xms>1G</docker.image.app-xms>
+        <docker.image.app-xmx>3G</docker.image.app-xmx>
+        <docker.image.app-user>nobody</docker.image.app-user>
     </properties>
 
     <licenses>
@@ -108,7 +140,6 @@
 
     <modules>
         <module>wings</module>
-        <module>example</module>
         <module>radiant</module>
     </modules>
 
@@ -143,22 +174,7 @@
             </dependency>
             <dependency>
                 <groupId>pro.fessional.wings</groupId>
-                <artifactId>silencer-test</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
                 <artifactId>faceless</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
-                <artifactId>faceless-autogen</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
-                <artifactId>faceless-awesome</artifactId>
                 <version>${wings.version}</version>
             </dependency>
             <dependency>
@@ -179,11 +195,6 @@
             <dependency>
                 <groupId>pro.fessional.wings</groupId>
                 <artifactId>faceless-shard</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
-                <artifactId>faceless-test</artifactId>
                 <version>${wings.version}</version>
             </dependency>
             <dependency>
@@ -213,22 +224,7 @@
             </dependency>
             <dependency>
                 <groupId>pro.fessional.wings</groupId>
-                <artifactId>slardar-test</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
                 <artifactId>warlock</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
-                <artifactId>warlock-autogen</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
-                <artifactId>warlock-awesome</artifactId>
                 <version>${wings.version}</version>
             </dependency>
             <dependency>
@@ -248,17 +244,7 @@
             </dependency>
             <dependency>
                 <groupId>pro.fessional.wings</groupId>
-                <artifactId>warlock-test</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
                 <artifactId>batrider</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
-                <artifactId>batrider-test</artifactId>
                 <version>${wings.version}</version>
             </dependency>
             <dependency>
@@ -268,15 +254,35 @@
             </dependency>
             <dependency>
                 <groupId>pro.fessional.wings</groupId>
-                <artifactId>testing-database</artifactId>
+                <artifactId>testing-silencer</artifactId>
+                <version>${wings.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>pro.fessional.wings</groupId>
+                <artifactId>testing-docker</artifactId>
+                <version>${wings.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>pro.fessional.wings</groupId>
+                <artifactId>testing-faceless</artifactId>
+                <version>${wings.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>pro.fessional.wings</groupId>
+                <artifactId>testing-slardar</artifactId>
+                <version>${wings.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>pro.fessional.wings</groupId>
+                <artifactId>testing-warlock</artifactId>
+                <version>${wings.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>pro.fessional.wings</groupId>
+                <artifactId>testing-batrider</artifactId>
                 <version>${wings.version}</version>
             </dependency>
             <!-- pro.fessional.wings radiant -->
-            <dependency>
-                <groupId>pro.fessional.wings</groupId>
-                <artifactId>tiny-autogen</artifactId>
-                <version>${wings.version}</version>
-            </dependency>
             <dependency>
                 <groupId>pro.fessional.wings</groupId>
                 <artifactId>tiny-task</artifactId>
@@ -447,6 +453,11 @@
             </dependency>
             <!-- dev -->
             <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.jetbrains</groupId>
                 <artifactId>annotations</artifactId>
                 <version>${annotations.version}</version>
@@ -487,6 +498,11 @@
                 <artifactId>allure-java-commons</artifactId>
                 <version>${allure.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>${druid.version}</version>
+            </dependency>
             <!-- do NOT import any BOM -->
         </dependencies>
     </dependencyManagement>
@@ -497,6 +513,10 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.commonjava.maven.plugins</groupId>
+                <artifactId>directory-maven-plugin</artifactId>
+            </plugin>
         </plugins>
         <pluginManagement>
             <plugins>
@@ -505,10 +525,9 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                        <systemPropertyVariables>
-                            <SPRING_APPLICATION_JSON>${testing-json}</SPRING_APPLICATION_JSON>
-                        </systemPropertyVariables>
-                        <argLine>@{wings.java-opens}</argLine>
+                        <environmentVariables>
+                            <WINGS_ROOTDIR>${wings.rootdir}</WINGS_ROOTDIR>
+                        </environmentVariables>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -536,32 +555,39 @@
                             <nonFilteredFileExtension>docx</nonFilteredFileExtension>
                         </nonFilteredFileExtensions>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>copy-main-mixed</id>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>copy-resources</goal>
+                            </goals>
+                            <configuration>
+                                <outputDirectory>${source.srcMainMixed}</outputDirectory>
+                                <resources>
+                                    <resource>
+                                        <directory>${source.srcMainJava}</directory>
+                                    </resource>
+                                    <resource>
+                                        <directory>${source.srcMainJavaGen}</directory>
+                                    </resource>
+                                    <resource>
+                                        <directory>${source.srcMainKotlin}</directory>
+                                    </resource>
+                                    <resource>
+                                        <directory>${source.srcMainKotlinGen}</directory>
+                                    </resource>
+                                </resources>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                     <configuration>
-                        <source>${java.version}</source>
-                        <target>${java.version}</target>
                         <parameters>true</parameters>
-                        <compilerArgs>
-                            <arg>--add-modules=java.se</arg> <!-- Hazelcast -->
-                            <arg>--add-exports=java.base/java.io=ALL-UNNAMED</arg> <!-- FastJson -->
-                            <arg>--add-exports=java.base/java.lang.invoke=ALL-UNNAMED</arg> <!-- FastJson2 -->
-                            <arg>--add-exports=java.base/java.lang=ALL-UNNAMED</arg> <!-- Hazelcast -->
-                            <arg>--add-exports=java.base/java.net=ALL-UNNAMED</arg> <!-- Gson -->
-                            <arg>--add-exports=java.base/java.nio=ALL-UNNAMED</arg> <!-- Hazelcast -->
-                            <arg>--add-exports=java.base/java.util=ALL-UNNAMED</arg> <!-- Boot Collections$EmptySet -->
-                            <arg>--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED</arg> <!-- Hazelcast -->
-                            <arg>--add-exports=java.base/sun.nio.ch=ALL-UNNAMED</arg> <!-- Hazelcast -->
-                            <arg>--add-exports=java.base/sun.security.x509=ALL-UNNAMED</arg> <!-- Boot -->
-                            <arg>--add-exports=java.management/sun.management=ALL-UNNAMED</arg> <!-- Hazelcast -->
-                            <arg>--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg> <!-- Boot -->
-                            <arg>--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg> <!-- Boot -->
-                            <arg>--add-exports=jdk.management/com.sun.management.internal=ALL-UNNAMED</arg> <!-- Hazelcast -->
-                            <arg>--add-exports=jdk.unsupported/sun.misc=ALL-UNNAMED</arg> <!-- Boot -->
-                        </compilerArgs>
                         <annotationProcessorPaths>
                             <!--  find annotationProcessors in the following paths -->
                             <path>
@@ -606,30 +632,100 @@
                     </executions>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>${maven-javadoc-plugin.version}</version>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <executions>
+                        <execution>
+                            <id>build-info</id>
+                            <goals>
+                                <goal>build-info</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>repackage</id>
+                            <configuration>
+                                <skip>${spring-boot.repackage.skip}</skip>
+                                <executable>${spring-boot.repackage.executable}</executable>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <!--  doc delombok getter for doc -->
+                <plugin>
+                    <groupId>org.projectlombok</groupId>
+                    <artifactId>lombok-maven-plugin</artifactId>
+                    <version>${lombok-maven-plugin.version}</version>
+                    <configuration>
+                        <addOutputDirectory>false</addOutputDirectory>
+                        <sourceDirectory>${source.srcMainMixed}</sourceDirectory>
+                        <outputDirectory>${source.srcMainDelombok}</outputDirectory>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>delombok</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>delombok</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.jetbrains.dokka</groupId>
+                    <artifactId>dokka-maven-plugin</artifactId>
+                    <version>${dokka-maven-plugin.version}</version>
+                    <configuration>
+                        <sourceDirectories>
+                            <dir>${source.srcMainDelombok}</dir>
+                        </sourceDirectories>
+                    </configuration>
                     <executions>
                         <execution>
                             <id>attach-javadocs</id>
+                            <phase>prepare-package</phase>
                             <goals>
-                                <goal>jar</goal>
+                                <goal>javadocJar</goal>
                             </goals>
                         </execution>
                     </executions>
                 </plugin>
+                <!--  coverage  -->
                 <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>${revision}</version>
-                    <configuration>
-                        <skip>${spring-boot.repackage.skip}</skip>
-                        <executable>${spring-boot.repackage.executable}</executable>
-                    </configuration>
+                    <groupId>org.eluder.coveralls</groupId>
+                    <artifactId>coveralls-maven-plugin</artifactId>
+                    <version>${coveralls-maven-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>javax.xml.bind</groupId>
+                            <artifactId>jaxb-api</artifactId>
+                            <version>2.3.1</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco-maven-plugin.version}</version>
                     <executions>
                         <execution>
+                            <id>prepare-agent</id>
                             <goals>
-                                <goal>build-info</goal>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>post-unit-test</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -654,19 +750,33 @@
                     </executions>
                 </plugin>
                 <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>${nexus-staging-plugin.version}</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <serverId>ossrh</serverId>
+                        <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                        <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
                     <version>${build-helper-maven-plugin.version}</version>
                     <executions>
                         <execution>
+                            <id>add-sources</id>
                             <phase>generate-sources</phase>
                             <goals>
                                 <goal>add-source</goal>
                             </goals>
                             <configuration>
                                 <sources>
-                                    <source>${project.basedir}/src/main/kotlin</source>
-                                    <source>${project.basedir}/src/main/java</source>
+                                    <source>${source.srcMainKotlin}</source>
+                                    <source>${source.srcMainKotlinGen}</source>
+                                    <source>${source.srcMainJava}</source>
+                                    <source>${source.srcMainJavaGen}</source>
                                 </sources>
                             </configuration>
                         </execution>
@@ -699,6 +809,28 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <groupId>org.commonjava.maven.plugins</groupId>
+                    <artifactId>directory-maven-plugin</artifactId>
+                    <version>${directory-maven-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>project-basedir</id>
+                            <goals>
+                                <goal>highest-basedir</goal>
+                            </goals>
+                            <phase>initialize</phase>
+                            <configuration>
+                                <property>highest-basedir</property>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${versions-maven-plugin.version}</version>
+                </plugin>
                 <!-- kotlin -->
                 <plugin>
                     <groupId>org.jetbrains.kotlin</groupId>
@@ -707,6 +839,13 @@
                     <configuration>
                         <jvmTarget>${java.version}</jvmTarget>
                         <javaParameters>true</javaParameters>
+                        <args>
+                            <arg>-Xjsr305=strict</arg>
+                        </args>
+                        <compilerPlugins>
+                            <plugin>spring</plugin>
+                            <plugin>lombok</plugin>
+                        </compilerPlugins>
                     </configuration>
                     <dependencies>
                         <dependency>
@@ -714,16 +853,26 @@
                             <artifactId>kotlin-maven-allopen</artifactId>
                             <version>${kotlin.version}</version>
                         </dependency>
+                        <dependency>
+                            <groupId>org.jetbrains.kotlin</groupId>
+                            <artifactId>kotlin-maven-lombok</artifactId>
+                            <version>${kotlin.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </dependency>
                     </dependencies>
                 </plugin>
                 <!-- build info -->
                 <plugin>
                     <groupId>io.github.git-commit-id</groupId>
                     <artifactId>git-commit-id-maven-plugin</artifactId>
-                    <version>${git-commit-id-plugin.version}</version>
+                    <version>${git-commit-id-maven-plugin.version}</version>
                     <executions>
                         <execution>
-                            <id>get-the-git-infos</id>
+                            <id>git-infos</id>
                             <goals>
                                 <goal>revision</goal>
                             </goals>
@@ -748,30 +897,68 @@
                         <commitIdGenerationMode>full</commitIdGenerationMode>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${maven-enforcer-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>enforce-maven</id>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <requireMavenVersion>
+                                        <version>[3.8,)</version>
+                                    </requireMavenVersion>
+                                </rules>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.google.cloud.tools</groupId>
+                    <artifactId>jib-maven-plugin</artifactId>
+                    <version>${jib-maven-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.google.cloud.tools</groupId>
+                            <artifactId>jib-layer-filter-extension-maven</artifactId>
+                            <version>${jib-layer-filter.version}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
     <repositories>
         <repository>
             <id>oss-sonatype</id>
-            <name>oss-sonatype</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
         </repository>
     </repositories>
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
     <profiles>
+        <profile>
+            <id>module-example</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>example</module>
+            </modules>
+        </profile>
         <profile>
             <id>wings-kotlin-1test</id>
             <activation>
@@ -803,12 +990,9 @@
                                 </goals>
                                 <configuration>
                                     <sourceDirs>
-                                        <sourceDir>${project.basedir}/src/test/kotlin</sourceDir>
-                                        <sourceDir>${project.basedir}/src/test/java</sourceDir>
+                                        <sourceDir>${source.srcTestKotlin}</sourceDir>
+                                        <sourceDir>${source.srcTestJava}</sourceDir>
                                     </sourceDirs>
-                                    <compilerPlugins>
-                                        <plugin>spring</plugin>
-                                    </compilerPlugins>
                                 </configuration>
                             </execution>
                         </executions>
@@ -865,15 +1049,11 @@
                                 </goals>
                                 <configuration>
                                     <sourceDirs>
-                                        <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
-                                        <sourceDir>${project.basedir}/src/main/java</sourceDir>
+                                        <sourceDir>${source.srcMainKotlin}</sourceDir>
+                                        <sourceDir>${source.srcMainKotlinGen}</sourceDir>
+                                        <sourceDir>${source.srcMainJava}</sourceDir>
+                                        <sourceDir>${source.srcMainJavaGen}</sourceDir>
                                     </sourceDirs>
-                                    <args>
-                                        <arg>-Xjsr305=strict</arg>
-                                    </args>
-                                    <compilerPlugins>
-                                        <plugin>spring</plugin>
-                                    </compilerPlugins>
                                 </configuration>
                             </execution>
                         </executions>
@@ -895,6 +1075,298 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!-- -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} -->
+            <id>report-coverage</id>
+            <properties>
+                <maven.test.skip>false</maven.test.skip>
+                <surefire.timeout>0</surefire.timeout> <!-- going to kill self fork JVM -->
+                <surefire.exitTimeout>180</surefire.exitTimeout>
+                <surefire.useSystemClassLoader>false</surefire.useSystemClassLoader> <!-- The forked VM terminated without properly saying goodbye -->
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/database/autogen/**</exclude>
+                                <exclude>**/enums/autogen/**</exclude>
+                                <exclude>**/security/autogen/**</exclude>
+                                <exclude>**/*Const.*</exclude>
+                                <exclude>**/*Const$*</exclude>
+                                <exclude>**/*Attribute.*</exclude>
+                                <exclude>**/*Attribute$*</exclude>
+                                <exclude>**/*Enum.*</exclude>
+                                <exclude>**/*Dummy.*</exclude>
+                                <exclude>**/*Event.*</exclude>
+                                <exclude>**/*Exception.*</exclude>
+                                <exclude>**/*Template.*</exclude>
+                                <exclude>**/*Database.*</exclude>
+                                <exclude>**/*Assert.*</exclude>
+                                <exclude>**/WhoAmI.*</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>deploy</id>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok-maven-plugin</artifactId>
+                    </plugin>
+                    <!--
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                    </plugin>
+                    -->
+                    <plugin>
+                        <groupId>org.jetbrains.dokka</groupId>
+                        <artifactId>dokka-maven-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>deploy-oss</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <distributionManagement>
+                <!-- https://central.sonatype.org/publish/publish-maven/ -->
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+                <repository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>deploy-alt</id>
+            <properties>
+                <!--suppress UnresolvedMavenProperty -->
+                <altReleaseDeploymentRepository>altrh::${MVN_ALT_REPO}</altReleaseDeploymentRepository>
+                <!--suppress UnresolvedMavenProperty -->
+                <altSnapshotDeploymentRepository>altrh::${MVN_ALT_SNAP}</altSnapshotDeploymentRepository>
+            </properties>
+        </profile>
+        <profile>
+            <id>docker</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <!-- mvn -Pdocker jib:dockerBuild -->
+                        <!-- https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin#system-properties -->
+                        <groupId>com.google.cloud.tools</groupId>
+                        <artifactId>jib-maven-plugin</artifactId>
+                        <configuration>
+                            <from>
+                                <image>${docker.from.prefix}eclipse-temurin:${java.version}-jre</image>
+                            </from>
+                            <to>
+                                <image>${docker.to.prefix}${project.artifactId}:${project.version}</image>
+                            </to>
+                            <container>
+                                <format>OCI</format>
+                                <volumes>
+                                    <volume>${docker.image.app-conf}</volume>
+                                    <volume>${docker.image.app-data}</volume>
+                                    <volume>${docker.image.app-logs}</volume>
+                                </volumes>
+                                <environment>
+                                    <JAVA_XMS>${docker.image.app-xms}</JAVA_XMS>
+                                    <JAVA_XMX>${docker.image.app-xmx}</JAVA_XMX>
+                                    <JAVA_OPTS><!-- trim indent
+                                        -->${javaopenArgLine} <!--
+                                        -->-server <!--
+                                        -->-Djava.awt.headless=true -Dfile.encoding=UTF-8 <!--
+                                        -->-XX:MetaspaceSize=256M -XX:AutoBoxCacheMax=20000 <!--
+                                        -->-XX:MaxDirectMemorySize=1024M <!--
+                                        -->-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${docker.image.app-logs}/application.hprof <!--
+                                        -->-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=8 -XX:ConcGCThreads=8 <!--
+                                        -->-Xlog:gc*=info:file=${docker.image.app-logs}/application.gc:time,tid,tags:filecount=5,filesize=100m <!--
+                                    --></JAVA_OPTS>
+                                    <SPRING_APPLICATION_JSON>{<!-- trim indent
+                                        -->"server.port":${docker.image.app-port}, <!--
+                                        -->"spring.config.location":"optional:file:${docker.image.app-conf}", <!--
+                                        -->"logging.file.name":"${docker.image.app-logs}/application.log" <!--
+                                    -->}</SPRING_APPLICATION_JSON>
+                                </environment>
+                                <ports>
+                                    <port>${docker.image.app-port}</port>
+                                    <port>5701</port>
+                                </ports>
+                                <user>${docker.image.app-user}</user>
+                                <appRoot>${docker.image.app-root}</appRoot>
+                                <workingDirectory>${docker.image.app-root}</workingDirectory>
+                                <entrypoint>
+                                    <arg>/bin/bash</arg>
+                                    <arg>-c</arg>
+                                    <arg><!-- JDK_JAVA_OPTIONS / JAVA_TOOL_OPTIONS / _JAVA_OPTIONS
+                                        -->exec java -Xms$JAVA_XMS -Xmx$JAVA_XMX $JAVA_OPTS <!--
+                                        -->-cp @${docker.image.app-root}/jib-classpath-file <!--
+                                        -->@${docker.image.app-root}/jib-main-class-file <!--
+                                    --></arg>
+                                </entrypoint>
+                                <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+                                <filesModificationTime>${maven.build.timestamp}</filesModificationTime>
+                            </container>
+                            <pluginExtensions>
+                                <pluginExtension>
+                                    <implementation>com.google.cloud.tools.jib.maven.extension.layerfilter.JibLayerFilterExtension</implementation>
+                                    <configuration implementation="com.google.cloud.tools.jib.maven.extension.layerfilter.Configuration">
+                                        <filters>
+                                            <filter>
+                                                <glob>**/spring-boot-devtools-*.jar</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/spring-boot-docker-compose-*.jar</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/spring-boot-starter-*.jar</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/spring-boot-autoconfigure-processor-*.jar</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/spring-boot-configuration-processor-*.jar</glob>
+                                            </filter>
+                                        </filters>
+                                    </configuration>
+                                </pluginExtension>
+                            </pluginExtensions>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>docker-dep</id>
+            <properties>
+                <jib.to.image>${docker.to.prefix}${project.artifactId}:${project.version}-DEP</jib.to.image>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.google.cloud.tools</groupId>
+                        <artifactId>jib-maven-plugin</artifactId>
+                        <configuration>
+                            <pluginExtensions>
+                                <pluginExtension>
+                                    <implementation>com.google.cloud.tools.jib.maven.extension.layerfilter.JibLayerFilterExtension</implementation>
+                                    <configuration implementation="com.google.cloud.tools.jib.maven.extension.layerfilter.Configuration">
+                                        <filters combine.children="append">
+                                            <filter>
+                                                <glob>**/*-SNAPSHOT.jar</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/classes/**</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/resources/**</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/jib-*-file</glob>
+                                            </filter>
+                                        </filters>
+                                    </configuration>
+                                </pluginExtension>
+                            </pluginExtensions>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>docker-app</id>
+            <properties>
+                <jib.from.image>${docker.from.prefix}${project.artifactId}:${project.version}-DEP</jib.from.image>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.google.cloud.tools</groupId>
+                        <artifactId>jib-maven-plugin</artifactId>
+                        <configuration>
+                            <pluginExtensions>
+                                <pluginExtension>
+                                    <implementation>com.google.cloud.tools.jib.maven.extension.layerfilter.JibLayerFilterExtension</implementation>
+                                    <configuration implementation="com.google.cloud.tools.jib.maven.extension.layerfilter.Configuration">
+                                        <filters>
+                                            <filter>
+                                                <glob>**/*.jar</glob>
+                                            </filter>
+                                            <filter>
+                                                <glob>**/*-SNAPSHOT.jar</glob>
+                                                <toLayer>SNAPSHOT libraries</toLayer>
+                                            </filter>
+                                        </filters>
+                                    </configuration>
+                                </pluginExtension>
+                            </pluginExtensions>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>image-paketo</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <image>
+                                <name>${docker.to.prefix}${project.artifactId}:${project.version}</name>
+                                <!-- app-root /workspace is hard code, can not change to /app -->
+                                <createdDate>now</createdDate>
+                                <env>
+                                    <BP_JVM_VERSION>${java.version}</BP_JVM_VERSION>
+                                    <BP_SPRING_CLOUD_BINDINGS_DISABLED>true</BP_SPRING_CLOUD_BINDINGS_DISABLED>
+                                    <BPE_SPRING_APPLICATION_JSON>{<!-- trim indent
+                                        -->"server.port":${docker.image.app-port}, <!--
+                                        -->"spring.config.location":"optional:file:${docker.image.app-conf}", <!--
+                                        -->"logging.file.name":"${docker.image.app-logs}/application.log" <!--
+                                    -->}</BPE_SPRING_APPLICATION_JSON>
+                                    <BPE_DELIM_JAVA_TOOL_OPTIONS xml:space="preserve"> </BPE_DELIM_JAVA_TOOL_OPTIONS>
+                                    <BPE_APPEND_JAVA_TOOL_OPTIONS><!-- trim indent
+                                        -->${javaopenArgLine} <!--
+                                        -->-Djava.awt.headless=true -Dfile.encoding=UTF-8 <!--
+                                        -->-XX:MetaspaceSize=256M -XX:AutoBoxCacheMax=20000 <!--
+                                        -->-XX:MaxDirectMemorySize=1024M <!--
+                                        -->-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${docker.image.app-logs}/application.hprof <!--
+                                        -->-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=8 -XX:ConcGCThreads=8 <!--
+                                        -->-Xlog:gc*=info:file=${docker.image.app-logs}/application.gc:time,tid,tags:filecount=5,filesize=100m <!--
+                                    --></BPE_APPEND_JAVA_TOOL_OPTIONS>
+                                </env>
+                            </image>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

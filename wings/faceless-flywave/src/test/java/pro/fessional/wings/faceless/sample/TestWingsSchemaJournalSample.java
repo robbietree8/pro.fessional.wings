@@ -18,7 +18,7 @@ import java.util.List;
  */
 
 @SpringBootTest
-@Disabled("Manage trace table, use to maintain data")
+@Disabled("Sample: manage trace table, use to maintain data")
 @Slf4j
 public class TestWingsSchemaJournalSample {
 
@@ -27,7 +27,7 @@ public class TestWingsSchemaJournalSample {
 
     @Test
     @TmsLink("C12027")
-    public void journal() {
+    public void journalTables() {
         long cid = -1;
         List<String> tables = Arrays.asList(
                 "win_account_balance",

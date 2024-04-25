@@ -6,7 +6,7 @@
     <parent>
         <groupId>pro.fessional</groupId>
         <artifactId>wings</artifactId>
-        <version>${revision}.${changelist}</version>
+        <version>${revision}</version>
     </parent>
 
     <groupId>pro.fessional.wings</groupId>
@@ -96,7 +96,7 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
-        <!-- sentry -->
+        <!-- sentry : no wings code, just config -->
         <dependency>
             <groupId>io.sentry</groupId>
             <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
@@ -110,7 +110,7 @@
         <!-- test -->
         <dependency>
             <groupId>pro.fessional.wings</groupId>
-            <artifactId>silencer-test</artifactId>
+            <artifactId>testing-silencer</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -3,7 +3,7 @@
 <hazelcast-client xmlns="http://www.hazelcast.com/schema/client-config"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.hazelcast.com/schema/client-config
-                  http://www.hazelcast.com/schema/client-config/hazelcast-client-config-5.1.xsd">
+                  http://www.hazelcast.com/schema/client-config/hazelcast-client-config-5.3.xsd">
 
     <cluster-name>${wings.slardar.hazelcast.cluster-name}</cluster-name>
     <network>
@@ -39,15 +39,6 @@
         <serialize-keys>true</serialize-keys>
         <local-update-policy>INVALIDATE</local-update-policy>
     </near-cache>
-    <serialization>
-        <serializers>
-            <!-- need UnmodifiableCollectionsSerializer -->
-            <global-serializer>pro.fessional.wings.slardar.serialize.KryoHazelcast</global-serializer>
-            <!-- spring FindByIndexNameSessionRepository -->
-            <serializer class-name="org.springframework.session.hazelcast.HazelcastSessionSerializer"
-                        type-class="org.springframework.session.MapSession"/>
-        </serializers>
-    </serialization>
     <user-code-deployment enabled="true">
         <!--        <jarPaths>-->
         <!--            <jarPath>example.jar</jarPath>-->

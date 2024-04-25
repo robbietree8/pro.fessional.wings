@@ -33,6 +33,7 @@ Use `t.md` as local [Test Management](https://www.jetbrains.com/help/idea/test-m
 * 11027 WingsEnabledDefaultTest: default enabled config and bean
 * 11028 WingsEnabledFalseTest: disable config and bean
 * 11029 WingsEnabledTopFalseTest: disable top config
+* 11030 TtlMDCAdapterTest: ttl MDC in multiple thread
 
 ## 12 Faceless
 
@@ -58,7 +59,7 @@ Use `t.md` as local [Test Management](https://www.jetbrains.com/help/idea/test-m
 * 12020 WingsJooqGenHelperTest: replace simple jooq codegen dao
 * 12021 WingsJooqGenHelperTest: replace embed jooq codegen dao
 * 12022 JooqCodeAutoGenSample: jooq codegen sample
-* 12023 ConstantEnumGeneratorSample: const enum codegen sample
+* 12023 ConstantEnumGeneratorTest: const enum codegen sample
 * 12024 TestWingsInitDatabaseSample: init database at revision TestV1 sample
 * 12025 TestWingsSchemaDumperSample: dump DDL and data to file sample
 * 12026 TestWingsSchemaGeneratorSample: init database at revision TestV2 sample
@@ -181,6 +182,9 @@ Use `t.md` as local [Test Management](https://www.jetbrains.com/help/idea/test-m
 * 12143 JooqShardingTest: print sprint sharding batch merge
 * 12144 MockTstNormalTableTest: mock ConnectionProvider by spring
 * 12145 MockTstNormalTableTest: mock DSLContext to Dao instance
+* 12146 WingsEnumConvertersTest: enum converter
+* 12147 WingsRevisionTest: module root and path
+* 12148 JdbcTemplateHelperTest: safe table
 
 ## 13 Slardar
 
@@ -302,6 +306,7 @@ Use `t.md` as local [Test Management](https://www.jetbrains.com/help/idea/test-m
 * 13116 WingsCookieTest: encrypt cookie by forward
 * 13117 AttributeHolderTest: Attribute expiry
 * 13118 EventPublishHelperTest: async global AttributeRidEvent
+* 13119 WingsCacheInterceptorTest: evict mulitple cache keys
 
 ## 14 Warlock
 
@@ -311,7 +316,7 @@ Use `t.md` as local [Test Management](https://www.jetbrains.com/help/idea/test-m
 * 14004 ResultSerializeTest: fastjson transient field of R
 * 14005 ResultSerializeTest: kryo transient field of R
 * 14006 ResultSerializeTest: java Serializable transient field of R
-* 14007 BootDatabaseTest: clean and init warlock schema
+* 14007 DatabaseWarlockTest: clean and init warlock schema
 * 14008 RuntimeConfServiceTest: simple type in runtime config
 * 14009 RuntimeConfServiceTest: List, Map in runtime config
 * 14010 RuntimeConfServiceTest: json in runtime config
@@ -382,6 +387,13 @@ Use `t.md` as local [Test Management](https://www.jetbrains.com/help/idea/test-m
 * 14075 CodeExceptionHandlerTest: CompletableFuture exception in chinese
 * 14076 JvmLightIdProviderTest: 50 instances compete for 1 db by tx
 * 14077 WarlockJournalDisableTest: disable TerminalJournalService
+* 14078 CacheEventHelperTest: table is in the tables collection
+* 14079 TerminalJournalServiceTest: submit of TerminalJournalService
+* 14080 TableChangePublisherTest: publish Insert TableChangeEvent
+* 14081 DatabaseWingsTest: clean and init wings schema
+* 14082 DatabaseFacelessTest: clean and init faceless schema
+* 14083 DatabaseShard0Test: clean and init shard_0 schema
+* 14084 DatabaseShard1Test: clean and init shard_1 schema
 
 ## 15 Tiny
 
@@ -394,8 +406,10 @@ Use `t.md` as local [Test Management](https://www.jetbrains.com/help/idea/test-m
 * 15007 TinyMailServiceTest: emit mail after 60s
 * 15008 TinyMailServiceTest: 501 Mail from with authorization user
 * 15009 TinyMailServiceTest: AddressException address contains dot-dot
-* 15010 BootDatabaseTest: clean and init schema for tiny
+* 15010 DatabaseTinyTest: clean and init schema for tiny
 * 15011 TinyMailCodeGenTest: insert and update trigger
 * 15012 ExecutorServiceTest: cancel task, check log
 * 15013 TinyTaskServiceTest: task from bean method reference
 * 15014 TinyTaskServiceTest: nothing but keep running 180s to see log
+* 15015 MailNoticeTest: title dryrun mailNotice
+* 15016 MailSenderManagerTest: title dryrun batch mail

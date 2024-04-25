@@ -1,6 +1,7 @@
 package pro.fessional.wings.slardar.datatime;
 
 import io.qameta.allure.TmsLink;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -13,14 +14,15 @@ import java.util.TimeZone;
  * @author trydofor
  * @since 2021-05-18
  */
+@Slf4j
 public class SmartFormatterTest {
 
     @Test
     @TmsLink("C13007")
-    public void print() {
+    public void infoFormat() {
         LocalDateTime d = LocalDateTime.of(2021, 1, 2, 3, 0, 0, 0);
         DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy[-MM][-dd][ ][HH][:mm][:ss][ ][VV]");
-        System.out.println(d.format(df));
+        log.info("format={}",d.format(df));
     }
 
     @Test

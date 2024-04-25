@@ -3,11 +3,12 @@ package pro.fessional.wings.tiny.mail.sender;
 import io.qameta.allure.TmsLink;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import pro.fessional.mirana.time.StopWatch;
+import pro.fessional.wings.testing.silencer.TestingLoggerAssert;
+import pro.fessional.wings.tiny.mail.TestingMailUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +19,8 @@ import java.util.List;
  */
 @SpringBootTest(properties = {
         "wings.tiny.mail.service.boot-scan=0",
+        "logging.level.root=INFO",
 })
-@Disabled("Batch send mails, manual")
 @Slf4j
 public class MailSenderManagerTest {
 
@@ -48,17 +49,22 @@ public class MailSenderManagerTest {
      */
     @Test
     @TmsLink("C15004")
-    public void testBatch() {
-        final TinyMailConfig config = mailConfigProvider.defaultConfig();
-        final StopWatch stopWatch = new StopWatch();
-        int size = 5;
+    public void timeLoopAndBatch() {
 
+        final TinyMailConfig config = mailConfigProvider.defaultConfig();
+        final boolean dryrun = TestingMailUtil.isDryrun(config);
+        // Too many emails per second. Please upgrade your plan
+        final int size = dryrun ? 1 : 5;
+
+
+        final StopWatch stopWatch = new StopWatch();
         try (final StopWatch.Watch ignored = stopWatch.start("single")) {
             for (int i = 0; i < size; i++) {
                 TinyMailMessage message = new TinyMailMessage();
                 message.adopt(config);
-                message.setSubject("test single tiny mail " + i);
-                message.setContent("test single tiny mail " + i);
+                String text = "test single tiny mail " + i;
+                message.setSubject(TestingMailUtil.dryrun(text, dryrun));
+                message.setContent(text);
                 log.info("single {} send start ====", i);
                 mailSenderManager.singleSend(message);
                 log.info("single {} send done ====", i);
@@ -71,8 +77,9 @@ public class MailSenderManagerTest {
             for (int i = 0; i < size; i++) {
                 TinyMailMessage message = new TinyMailMessage();
                 message.adopt(config);
-                message.setSubject("test batch tiny mail " + i);
-                message.setContent("test batch tiny mail " + i);
+                String text = "test batch tiny mail " + i;
+                message.setSubject(TestingMailUtil.dryrun(text, dryrun));
+                message.setContent(text);
                 messages.add(message);
             }
             log.info("batch {} send start ====", size);
@@ -95,4 +102,26 @@ public class MailSenderManagerTest {
         log.info(stopWatch.toString());
     }
 
+    @Test
+    @TmsLink("C15016")
+    public void batchMailDryrun() {
+        final TinyMailConfig config = mailConfigProvider.defaultConfig();
+        List<TinyMailMessage> messages = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            TinyMailMessage message = new TinyMailMessage();
+            message.adopt(config);
+            message.setSubject(TestingMailUtil.dryrun("test batch tiny mail " + i));
+            message.setContent("test batch tiny mail " + i);
+            messages.add(message);
+        }
+        TestingLoggerAssert al = TestingLoggerAssert.install();
+        al.rule("batch dryrun", it -> it.getFormattedMessage().contains("batch mail dryrun and sleep"));
+        al.start();
+
+        mailSenderManager.batchSend(messages);
+
+        al.assertCount(1);
+        al.stop();
+        al.uninstall();
+    }
 }

@@ -24,7 +24,7 @@ import java.util.List;
         "spring.datasource.username=" + Devops0ProjectConstant.JDBC_USER,
         "spring.datasource.password=" + Devops0ProjectConstant.JDBC_PASS,
 })
-@Disabled("Journal Manage")
+@Disabled("Project: Journal Manage")
 @Slf4j
 public class Devops5JournalManagerTest {
 
@@ -36,7 +36,7 @@ public class Devops5JournalManagerTest {
         schemaJournalManager.askWay(FlywaveInteractiveGui.askGui());
         schemaJournalManager.logWay(FlywaveInteractiveGui.logGui());
 
-        long commitId = 9999_9999_9999L;
+        long commitId = 2022_0222_2222L;
         boolean enable = true;
         boolean manage = true;
         List<String> tables = Arrays.asList(

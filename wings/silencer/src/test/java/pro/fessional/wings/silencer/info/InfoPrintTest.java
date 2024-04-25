@@ -3,6 +3,7 @@ package pro.fessional.wings.silencer.info;
 import io.qameta.allure.TmsLink;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @since 2021-06-02
  */
 @SpringBootTest
-@Disabled("Only display BuildProperties, GitProperties")
+@Disabled("Investigate: display BuildProperties, GitProperties")
 @Slf4j
 public class InfoPrintTest {
 
@@ -27,8 +28,13 @@ public class InfoPrintTest {
 
     @Test
     @TmsLink("C11004")
-    public void printTest() {
+    public void infoBuildAndGit() {
         log.info("{}", buildProperties);
         log.info("{}", gitProperties);
+        Assertions.assertEquals("pro.fessional.wings",buildProperties.getGroup());
+        Assertions.assertEquals("silencer",buildProperties.getArtifact());
+        Assertions.assertNotNull(gitProperties.getBranch());
+        Assertions.assertNotNull(gitProperties.getCommitId());
+        Assertions.assertNotNull(gitProperties.getCommitTime());
     }
 }

@@ -34,7 +34,7 @@ class AttributeHolderTest {
         Assertions.assertEquals(Integer.class, Solos.PasssaltByUid.keyType);
         Assertions.assertEquals(String.class, Solos.PasssaltByUid.valType);
 
-        System.out.println(">>>" + Solos.PasssaltByUid.regType.getName().substring(Solos.PasssaltByUid.regType.getPackageName().length() + 1));
+        log.info(">>>{}", Solos.PasssaltByUid.regType.getName().substring(Solos.PasssaltByUid.regType.getPackageName().length() + 1));
     }
 
     TypedReg<Integer, String> Expiry = new TypedReg<>() {};
@@ -45,13 +45,13 @@ class AttributeHolderTest {
         // put and get
         AttributeHolder.putAttr(Expiry, 1, "1", 1);
         Assertions.assertEquals("1", AttributeHolder.getAttr(Expiry, 1));
-        Sleep.ignoreInterrupt(2000); // 1500 fail
+        Sleep.ignoreInterrupt(3000); // 1500 fail
         Assertions.assertNull(AttributeHolder.getAttr(Expiry, 1));
 
         // loader and try
         AttributeHolder.regLoader(Expiry, integer -> "1");
         Assertions.assertEquals("1", AttributeHolder.tryAttr(Expiry, 1, 1));
-        Sleep.ignoreInterrupt(2000);
+        Sleep.ignoreInterrupt(3000);
         Assertions.assertNull(AttributeHolder.getAttr(Expiry, 1));
         Assertions.assertEquals("1", AttributeHolder.tryAttr(Expiry, 1));
     }

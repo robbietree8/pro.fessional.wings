@@ -10,7 +10,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +32,7 @@ public class ConstantNaviGenerator {
 
     private static final String ROOT = "";
 
-    private String targetDir = "src/main/java";
+    private String targetDir = "src/main/java-gen";
     private String packageName = "";
     private String delimiter = ".";
 
@@ -51,15 +50,18 @@ public class ConstantNaviGenerator {
 
         //
         File dst = new File(targetDir, packageName.replace('.', '/'));
-        dst.mkdirs();
+        boolean ignore = dst.mkdirs();
 
         StringBuilder out = new StringBuilder();
         out.append(String.format("""
                         package %s;
+                        
+                        import javax.annotation.processing.Generated;
 
                         /**
                          * @since %s
                          */
+                        @Generated("wings faceless codegen")
                         public interface %s {""",
                 packageName, LocalDate.now(), javaName));
         if (!prefixCode.isEmpty()) {

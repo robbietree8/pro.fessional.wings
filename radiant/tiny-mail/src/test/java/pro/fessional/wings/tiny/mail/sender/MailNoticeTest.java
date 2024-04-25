@@ -8,8 +8,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.mail.MailProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import pro.fessional.mirana.time.StopWatch;
+import pro.fessional.wings.testing.silencer.TestingLoggerAssert;
+import pro.fessional.wings.tiny.mail.TestingMailUtil;
 
 import java.util.Collections;
 
@@ -19,6 +22,7 @@ import java.util.Collections;
  */
 @SpringBootTest(properties = {
         "wings.tiny.mail.service.boot-scan=0",
+        "logging.level.root=INFO",
 })
 @Slf4j
 public class MailNoticeTest {
@@ -29,29 +33,41 @@ public class MailNoticeTest {
     @Setter(onMethod_ = {@Autowired})
     protected MailConfigProvider mailConfigProvider;
 
-    @Setter(onMethod_ = {@Value("${QQ_MAIL_USER}")})
-    protected String mailUser;
+    @Setter(onMethod_ = {@Autowired})
+    protected MailProperties mailProperties;
 
-    @Setter(onMethod_ = {@Value("${QQ_MAIL_PASS}")})
-    protected String mailPass;
-
-    @Setter(onMethod_ = {@Value("${GMAIL_USER}")})
+    @Setter(onMethod_ = {@Value("${GMAIL_USER:}")})
     protected String gmailUser;
 
-    @Setter(onMethod_ = {@Value("${GMAIL_PASS}")})
+    @Setter(onMethod_ = {@Value("${GMAIL_PASS:}")})
     protected String gmailPass;
 
     @Test
     @TmsLink("C15001")
-    public void testPost() {
-        final boolean snd = mailNotice.post("test tiny mail send", "test send");
-        Assertions.assertTrue(snd, "need env QQ_MAIL_USER, QQ_MAIL_PASS, current user=" + mailUser + ", pass=" + mailPass);
+    public void postMailNotice() {
+        String subject = TestingMailUtil.dryrun("test tiny mail send", mailProperties);
+        final boolean snd = mailNotice.post(subject, "test send");
+        Assertions.assertTrue(snd, "need env MAIL_USER, MAIL_PASS, current user=" + mailProperties.getUsername());
     }
 
     @Test
-    @Disabled("Statistics time cost")
+    @TmsLink("C15015")
+    public void postMailNoticeDryrun() {
+        TestingLoggerAssert al = TestingLoggerAssert.install();
+        al.rule("single dryrun", it -> it.getFormattedMessage().contains("single mail dryrun and sleep"));
+        al.start();
+
+        mailNotice.post(TestingMailUtil.dryrun("test tiny mail send"), "test send");
+
+        al.assertCount(1);
+        al.stop();
+        al.uninstall();
+    }
+
+    @Test
+    @Disabled("Statis: time cost")
     @TmsLink("C15002")
-    public void testDefault() {
+    public void timeEmitPostSend() {
         final StopWatch stopWatch = new StopWatch();
         try (final StopWatch.Watch ignored = stopWatch.start("emit")) {
             mailNotice.emit("test tiny mail emit", "test emit");
@@ -66,9 +82,9 @@ public class MailNoticeTest {
     }
 
     @Test
-    @Disabled("gmail")
+    @Disabled("3rdService: gmail")
     @TmsLink("C15003")
-    public void testGmail() {
+    public void sendGmail() {
         // dynamic config
         final String name = "gmailx";
         TinyMailConfig conf = new TinyMailConfig();

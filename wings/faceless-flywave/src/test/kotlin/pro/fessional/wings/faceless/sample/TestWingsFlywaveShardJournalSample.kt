@@ -9,8 +9,6 @@ import pro.fessional.wings.faceless.flywave.SchemaJournalManager
 import pro.fessional.wings.faceless.flywave.SchemaRevisionManager
 import pro.fessional.wings.faceless.flywave.SchemaShardingManager
 import pro.fessional.wings.faceless.flywave.WingsRevision
-import pro.fessional.wings.faceless.helper.WingsTestHelper.REVISION_TEST_V1
-import pro.fessional.wings.faceless.helper.WingsTestHelper.REVISION_TEST_V2
 import pro.fessional.wings.faceless.util.FlywaveRevisionScanner
 
 /**
@@ -39,10 +37,10 @@ class TestWingsFlywaveShardJournalSample {
 
         // upgrade
         schemaRevisionManager.publishRevision(WingsRevision.V01_19_0520_01_IdLog.revision(), 0)
-        schemaRevisionManager.publishRevision(REVISION_TEST_V1, 0)
+        schemaRevisionManager.publishRevision(WingsRevision.V90_22_0601_01_TestSchema.revision(), 0)
 
         // force upgrade in master database only
-        schemaRevisionManager.forceApplyBreak(REVISION_TEST_V2, 2, true, "master")
+        schemaRevisionManager.forceApplyBreak(WingsRevision.V90_22_0601_02_TestRecord.revision(), 2, true, "master")
 
         // sharding
         val table = "tst_sharding"

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.qameta.allure.TmsLink;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -24,8 +25,8 @@ import java.io.FileInputStream;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static pro.fessional.wings.slardar.httprest.RetrofitCaller.Bad;
-import static pro.fessional.wings.slardar.httprest.RetrofitCaller.Ins;
+import static pro.fessional.wings.slardar.httprest.TestRetrofitCaller.Bad;
+import static pro.fessional.wings.slardar.httprest.TestRetrofitCaller.Ins;
 import static pro.fessional.wings.slardar.httprest.okhttp.OkHttpMediaType.APPLICATION_OCTET_STREAM_VALUE;
 import static pro.fessional.wings.slardar.httprest.okhttp.OkHttpMediaType.MULTIPART_FORM_DATA_VALUE;
 
@@ -35,6 +36,7 @@ import static pro.fessional.wings.slardar.httprest.okhttp.OkHttpMediaType.MULTIP
  * @since 2020-06-03
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Slf4j
 public class RetrofitTest {
 
     @Setter(onMethod_ = {@Value("http://localhost:${local.server.port}")})
@@ -56,19 +58,19 @@ public class RetrofitTest {
             return chain.proceed(request);
         });
 
-        RetrofitCaller caller = RetrofitHelper.jacksonPlain(RetrofitCaller.class, host, bd.build());
+        TestRetrofitCaller caller = RetrofitHelper.jacksonPlain(TestRetrofitCaller.class, host, bd.build());
         testAll(caller);
     }
 
     @Test
     @TmsLink("C13057")
     public void testJacksonAutowired() {
-        RetrofitCaller caller = RetrofitHelper.jacksonPlain(RetrofitCaller.class, host, okHttpClient);
+        TestRetrofitCaller caller = RetrofitHelper.jacksonPlain(TestRetrofitCaller.class, host, okHttpClient);
         testAll(caller);
     }
 
     @SneakyThrows
-    private void testAll(RetrofitCaller caller) {
+    private void testAll(TestRetrofitCaller caller) {
         Bad bad = new Bad();
         bad.setSsStr("ssStr");
         bad.setSStr("sStr");
@@ -105,26 +107,26 @@ public class RetrofitTest {
     @SneakyThrows
     @Test
     @TmsLink("C13058")
-    public void printFastjsonAndJackson() {
+    public void infoFastjsonAndJackson() {
         Bad bad = new Bad();
         bad.setSsStr("ssStr");
         bad.setSStr("sStr");
         final String j1 = JSON.toJSONString(bad, FastJsonHelper.DefaultWriter());
-        System.out.println("fastjson:" + j1);
+        log.info("fastjson:{}", j1);
 
         final String j2 = objectMapper.writeValueAsString(bad);
-        System.out.println("jackson:" + j2);
+        log.info("jackson:{}", j2);
 
         //
         final Bad o1 = JSON.parseObject(j1, Bad.class, FastJsonHelper.DefaultReader());
-        System.out.println("fastjson-fastjson:" + o1);
+        log.info("fastjson-fastjson:{}", o1);
         final Bad o2 = objectMapper.readValue(j1, Bad.class);
-        System.out.println("fastjson-jackson:" + o2);
+        log.info("fastjson-jackson:{}", o2);
 
         final Bad o3 = JSON.parseObject(j2, Bad.class, FastJsonHelper.DefaultReader());
-        System.out.println("jackson-fastjson:" + o3);
+        log.info("jackson-fastjson:{}", o3);
         final Bad o4 = objectMapper.readValue(j2, Bad.class);
-        System.out.println("jackson-jackson:" + o4);
+        log.info("jackson-jackson:{}", o4);
 
     }
 }

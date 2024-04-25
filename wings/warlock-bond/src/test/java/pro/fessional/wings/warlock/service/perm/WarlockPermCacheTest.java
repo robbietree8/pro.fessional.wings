@@ -6,15 +6,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.boot.test.context.SpringBootTest;
-import pro.fessional.wings.silencer.testing.AssertionLogger;
+import pro.fessional.wings.testing.silencer.TestingLoggerAssert;
 
 /**
  * @author trydofor
  * @since 2021-06-19
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(properties = {
+        "logging.level.root=DEBUG", // AssertionLogger
+})
+@DependsOnDatabaseInitialization
 class WarlockPermCacheTest {
 
     @Setter(onMethod_ = {@Autowired})
@@ -25,7 +29,7 @@ class WarlockPermCacheTest {
     @Test
     @TmsLink("C14064")
     void cleanCache() throws InterruptedException {
-        AssertionLogger al = AssertionLogger.install();
+        TestingLoggerAssert al = TestingLoggerAssert.install();
         al.rule("loadPermAll", event -> event.getFormattedMessage().contains("loadPermAll size="));
         al.rule("loadRoleAll", event -> event.getFormattedMessage().contains("loadRoleAll size="));
         al.start();

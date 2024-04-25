@@ -6,6 +6,7 @@ import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
@@ -17,6 +18,7 @@ import java.util.TreeMap;
  * @author trydofor
  * @since 2019-12-31
  */
+@Slf4j
 public class StringMapXmlWriterTest {
 
     @XmlRootElement(name = "xml")
@@ -43,7 +45,7 @@ public class StringMapXmlWriterTest {
 
     @Test
     @TmsLink("C11023")
-    public void map() throws JAXBException {
+    public void infoMap() throws JAXBException {
         JAXBContext contextObj = JAXBContext.newInstance(TestXml.class);
         Marshaller marshallerObj = contextObj.createMarshaller();
         marshallerObj.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -52,13 +54,13 @@ public class StringMapXmlWriterTest {
         StringMapXmlWriter writer = StringMapXmlWriter.linkMap();
         marshallerObj.marshal(xml, writer);
         Map<String, String> tree = writer.getResultTree();
-        System.out.println(tree);
-        System.out.println(new TreeMap<>(tree));
+        log.info("tree={}", tree);
+        log.info("TreeMap={}", new TreeMap<>(tree));
     }
 
     @Test
     @TmsLink("C11024")
-    public void xml() throws JAXBException {
+    public void infoXml() throws JAXBException {
         JAXBContext contextObj = JAXBContext.newInstance(TestXml.class);
 
         Marshaller marshallerObj = contextObj.createMarshaller();
@@ -67,6 +69,6 @@ public class StringMapXmlWriterTest {
         TestXml xml = new TestXml();
         StringWriter strw = new StringWriter();
         marshallerObj.marshal(xml, strw);
-        System.out.println(strw.toString());
+        log.info("xml={}", strw);
     }
 }

@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author trydofor
  * @since 2021-02-25
  */
-@SuppressWarnings("ALL")
+@SuppressWarnings("all")
 @Slf4j
 class DefaultPasssaltEncoderTest {
     private final PasswordEncoder bcrypt = new BCryptPasswordEncoder();
@@ -41,7 +41,7 @@ class DefaultPasssaltEncoderTest {
      */
     @Test
     @TmsLink("C13082")
-    void print() {
+    void timeEncoder() {
         final String str = RandCode.strong(100);
         time(bcrypt, str);
         time(pbkdf2, str);
@@ -63,7 +63,7 @@ class DefaultPasssaltEncoderTest {
 
     @Test
     @TmsLink("C13083")
-    void testSalt() {
+    void testPassSalt() {
         final String pass = RandCode.strong(5);
         final String salt = RandCode.strong(100);
         final String p1 = sha256.salt(pass, salt);
@@ -80,7 +80,7 @@ class DefaultPasssaltEncoderTest {
      */
     @Test
     @TmsLink("C13084")
-    void testMysql() {
+    void testMysqlPassword() {
         String text1 = "wingsboot";
         String text2 = "milioncircle";
         String code1 = "*470398BC6EA62F5FB5BFE1EA5FAD13A28EE432DE";

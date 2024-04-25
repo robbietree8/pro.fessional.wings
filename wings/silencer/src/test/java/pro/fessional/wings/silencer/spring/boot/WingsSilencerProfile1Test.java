@@ -36,13 +36,13 @@ public class WingsSilencerProfile1Test {
 
     @Test
     @TmsLink("C11007")
-    public void profile() {
+    public void profileDev() {
         assertEquals("Silencer-dev", module);
-        assertEquals("wings-silencer-dev", name);
+        assertEquals("silencer-dev", name);
         assertEquals("Silencer-dev", moduleDev);
-        assertEquals("wings-silencer-dev", nameDev);
+        assertEquals("silencer-dev", nameDev);
         assertEquals("empty", moduleTest);
         assertEquals("empty", nameTest);
-        assertEquals("wings-silencer-empty", nameEmpty);
+        assertEquals("silencer-empty", nameEmpty);
     }
 }

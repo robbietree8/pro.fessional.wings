@@ -6,7 +6,7 @@
     <parent>
         <groupId>pro.fessional</groupId>
         <artifactId>wings</artifactId>
-        <version>${revision}.${changelist}</version>
+        <version>${revision}</version>
     </parent>
 
     <groupId>pro.fessional.wings</groupId>
@@ -23,7 +23,7 @@
         </dependency>
         <dependency>
             <groupId>pro.fessional.wings</groupId>
-            <artifactId>warlock-awesome</artifactId>
+            <artifactId>warlock</artifactId>
         </dependency>
         <dependency>
             <groupId>me.zhyd.oauth</groupId>
@@ -32,7 +32,7 @@
         <!-- test -->
         <dependency>
             <groupId>pro.fessional.wings</groupId>
-            <artifactId>warlock-test</artifactId>
+            <artifactId>testing-warlock</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -6,50 +6,33 @@
     <parent>
         <groupId>pro.fessional.wings</groupId>
         <artifactId>ancient</artifactId>
-        <version>${revision}.${changelist}</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>radiant</artifactId>
-    <version>${revision}.${changelist}</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>Radiant::</name>
     <description>Radiant components under GhostShip Model</description>
 
     <modules>
-        <module>devs-codegen</module>
-        <module>devs-mvndeps</module>
-        <module>tiny-autogen</module>
         <module>tiny-mail</module>
         <module>tiny-task</module>
     </modules>
-
-    <properties>
-        <maven.test.skip>true</maven.test.skip>
-        <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
-    </properties>
 
     <dependencies>
         <!-- dev tools-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-properties-migrator</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -97,6 +80,10 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
             </plugin>
             <plugin>
@@ -109,4 +96,17 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>module-devs</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>devs-codegen</module>
+                <module>devs-coverage</module>
+                <module>devs-mvndeps</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>

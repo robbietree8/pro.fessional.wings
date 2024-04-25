@@ -28,22 +28,22 @@ public class MessageModuleTest {
 
     @Test
     @TmsLink("C11001")
-    void testModule() {
+    void modulePropAndLangTag() {
         assertEquals("Silencer", module);
         assertEquals(Locale.forLanguageTag("en-US"), Locale.getDefault());
     }
 
     @Test
     @TmsLink("C11002")
-    void testMessageStandard() {
+    void messageOfStandard() {
         // use lang
-        String cn = messageSource.getMessage("base.not-empty", Arr.of("姓名"), Locale.CHINA);
+        String cn = messageSource.getMessage("base.not-empty", Arr.obj("姓名"), Locale.CHINA);
         // use default
-        String en = messageSource.getMessage("base.not-empty", Arr.of("name"), Locale.US);
+        String en = messageSource.getMessage("base.not-empty", Arr.obj("name"), Locale.US);
         // use lang and region
-        String tw = messageSource.getMessage("base.not-empty", Arr.of("姓名"), Locale.TAIWAN);
+        String tw = messageSource.getMessage("base.not-empty", Arr.obj("姓名"), Locale.TAIWAN);
         // use default
-        String jp = messageSource.getMessage("base.not-empty", Arr.of("name"), Locale.JAPAN);
+        String jp = messageSource.getMessage("base.not-empty", Arr.obj("name"), Locale.JAPAN);
 
         assertEquals("姓名 不能为空", cn);
         assertEquals("name can not be empty", en);
@@ -53,15 +53,15 @@ public class MessageModuleTest {
 
     @Test
     @TmsLink("C11003")
-    void testMessagePartial() {
+    void messageOfPartial() {
         // use lang
-        String zh = messageSource.getMessage("base.not-empty", Arr.of("姓名"), Locale.forLanguageTag("zh"));
+        String zh = messageSource.getMessage("base.not-empty", Arr.obj("姓名"), Locale.forLanguageTag("zh"));
         // use default
-        String en = messageSource.getMessage("base.not-empty", Arr.of("name"), Locale.forLanguageTag("en"));
+        String en = messageSource.getMessage("base.not-empty", Arr.obj("name"), Locale.forLanguageTag("en"));
         // use lang and region
-        String tw = messageSource.getMessage("base.not-empty", Arr.of("姓名"), Locale.forLanguageTag("zh-TW"));
+        String tw = messageSource.getMessage("base.not-empty", Arr.obj("姓名"), Locale.forLanguageTag("zh-TW"));
         // use default
-        String jp = messageSource.getMessage("base.not-empty", Arr.of("name"), Locale.forLanguageTag("jp"));
+        String jp = messageSource.getMessage("base.not-empty", Arr.obj("name"), Locale.forLanguageTag("jp"));
 
         assertEquals("姓名 不能为空", zh);
         assertEquals("name can not be empty", en);

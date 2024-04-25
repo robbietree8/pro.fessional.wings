@@ -3,7 +3,6 @@ package pro.fessional.wings.faceless.jooq;
 import io.qameta.allure.TmsLink;
 import lombok.Data;
 import lombok.Setter;
-import lombok.val;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -18,11 +17,11 @@ import pro.fessional.wings.faceless.app.database.autogen.tables.TstShardingTable
 import pro.fessional.wings.faceless.app.database.autogen.tables.daos.TstShardingDao;
 import pro.fessional.wings.faceless.app.database.autogen.tables.records.TstShardingRecord;
 import pro.fessional.wings.faceless.flywave.SchemaRevisionManager;
-import pro.fessional.wings.faceless.helper.WingsTestHelper;
+import pro.fessional.wings.faceless.flywave.WingsRevision;
 import pro.fessional.wings.faceless.util.FlywaveRevisionScanner;
+import pro.fessional.wings.testing.faceless.database.TestingDatabaseHelper;
 
-import static pro.fessional.wings.faceless.helper.WingsTestHelper.REVISION_TEST_V2;
-import static pro.fessional.wings.faceless.helper.WingsTestHelper.testcaseNotice;
+import static pro.fessional.wings.testing.faceless.database.TestingDatabaseHelper.testcaseNotice;
 
 /**
  * @author trydofor
@@ -38,24 +37,24 @@ public class JooqMapperCompatibleTest {
     private SchemaRevisionManager schemaRevisionManager;
 
     @Setter(onMethod_ = {@Autowired})
-    private WingsTestHelper wingsTestHelper;
+    private TestingDatabaseHelper testingDatabaseHelper;
 
     @Setter(onMethod_ = {@Autowired})
-    private TstShardingDao dao;
+    private TstShardingDao tstShardingDao;
 
     @Test
     @TmsLink("C12098")
     public void test0Init() {
-        wingsTestHelper.cleanTable();
-        val sqls = FlywaveRevisionScanner.scanMaster();
+        testingDatabaseHelper.cleanTable();
+        var sqls = FlywaveRevisionScanner.scanMaster();
         schemaRevisionManager.checkAndInitSql(sqls, 0, false);
-        schemaRevisionManager.publishRevision(REVISION_TEST_V2, 0);
+        schemaRevisionManager.publishRevision(WingsRevision.V90_22_0601_02_TestRecord.revision(), 0);
     }
 
     @Test
     @TmsLink("C12099")
     public void test1Exist() {
-        final boolean b = dao.notTableExist();
+        final boolean b = tstShardingDao.notTableExist();
         Assertions.assertFalse(b);
     }
 
@@ -68,8 +67,8 @@ public class JooqMapperCompatibleTest {
     @Test
     @TmsLink("C12100")
     public void test1Lower() {
-        DSLContext ctx = dao.ctx();
-        TstShardingTable t = dao.getTable();
+        DSLContext ctx = tstShardingDao.ctx();
+        TstShardingTable t = tstShardingDao.getTable();
         Condition c = t.Id.gt(1L).and(t.Id.le(105L));
 
         testcaseNotice("Case-sensitive alias, not supported by jooq, supported by sfm");
@@ -86,8 +85,8 @@ public class JooqMapperCompatibleTest {
     @Test
     @TmsLink("C12101")
     public void test1Snake() {
-        DSLContext ctx = dao.ctx();
-        TstShardingTable t = dao.getTable();
+        DSLContext ctx = tstShardingDao.ctx();
+        TstShardingTable t = tstShardingDao.getTable();
         Condition c = t.Id.gt(1L).and(t.Id.le(105L));
 
         testcaseNotice("Underscore alias, supported by both jooq and sfm");
@@ -110,8 +109,8 @@ public class JooqMapperCompatibleTest {
         vo.setId(101L);
         vo.setLoginInfo("login-info test");
 
-        final TstShardingRecord rd = dao.newRecord(vo);
-        final Field<?>[] fld = dao.getTable().fields();
+        final TstShardingRecord rd = tstShardingDao.newRecord(vo);
+        final Field<?>[] fld = tstShardingDao.getTable().fields();
         final Object[] arr = rd.intoArray();
 
         Assertions.assertNotNull(rd.getLoginInfo());
@@ -121,16 +120,16 @@ public class JooqMapperCompatibleTest {
     @Test
     @TmsLink("C12103")
     public void test2Array() {
-        TstShardingTable t = dao.getTable();
+        TstShardingTable t = tstShardingDao.getTable();
         Condition c = t.Id.eq(105L);
-        final TstShardingRecord rd = dao.ctx()
-                                        .selectFrom(t)
-                                        .where(c)
-                                        .fetchOne();
+        final TstShardingRecord rd = tstShardingDao.ctx()
+                                                   .selectFrom(t)
+                                                   .where(c)
+                                                   .fetchOne();
         Assertions.assertNotNull(rd);
         Assertions.assertNotNull(rd.getLoginInfo());
         final Object[] arr = rd.intoArray();
-        final Field<?>[] fld = dao.getTable().fields();
+        final Field<?>[] fld = tstShardingDao.getTable().fields();
         Assertions.assertEquals(fld.length, arr.length, "Sfm bug https://github.com/arnaudroger/SimpleFlatMapper/issues/764");
     }
 }
